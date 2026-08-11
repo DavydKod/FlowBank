@@ -1,6 +1,6 @@
-package org.example.exception;
+package com.davyd.exception;
 
-import org.example.util.Validation;
+import com.davyd.util.Validation;
 
 public class UserNotFoundException extends NotFoundException{
     public UserNotFoundException(long userId){

@@ -1,8 +1,8 @@
-package org.example.service;
+package com.davyd.service;
 
-import org.example.exception.UserNotFoundException;
-import org.example.models.User;
-import org.example.repository.UserRepository;
+import com.davyd.exception.UserNotFoundException;
+import com.davyd.models.User;
+import com.davyd.repository.UserRepository;
 
 import java.util.List;
 

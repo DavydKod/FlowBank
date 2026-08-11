@@ -1,4 +1,4 @@
-package org.example.exception;
+package com.davyd.exception;
 
 public class TransactionNotFoundException extends NotFoundException {
 

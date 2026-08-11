@@ -1,11 +1,11 @@
-package org.example.service;
+package com.davyd.service;
 
-import org.example.exception.BankAccountNotFoundException;
-import org.example.exception.TransactionNotFoundException;
-import org.example.models.BankAccount;
-import org.example.models.Transaction;
-import org.example.repository.BankAccountRepository;
-import org.example.repository.TransactionRepository;
+import com.davyd.exception.BankAccountNotFoundException;
+import com.davyd.exception.TransactionNotFoundException;
+import com.davyd.models.BankAccount;
+import com.davyd.models.Transaction;
+import com.davyd.repository.BankAccountRepository;
+import com.davyd.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

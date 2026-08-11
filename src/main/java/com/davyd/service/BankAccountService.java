@@ -1,11 +1,11 @@
-package org.example.service;
+package com.davyd.service;
 
-import org.example.exception.BankAccountNotFoundException;
-import org.example.exception.UserNotFoundException;
-import org.example.models.BankAccount;
-import org.example.models.User;
-import org.example.repository.BankAccountRepository;
-import org.example.repository.UserRepository;
+import com.davyd.exception.BankAccountNotFoundException;
+import com.davyd.exception.UserNotFoundException;
+import com.davyd.models.BankAccount;
+import com.davyd.models.User;
+import com.davyd.repository.BankAccountRepository;
+import com.davyd.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

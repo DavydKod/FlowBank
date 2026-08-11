@@ -1,6 +1,6 @@
-package org.example.repository;
+package com.davyd.repository;
 
-import org.example.models.User;
+import com.davyd.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

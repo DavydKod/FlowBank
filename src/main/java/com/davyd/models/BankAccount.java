@@ -1,4 +1,4 @@
-package org.example.models;
+package com.davyd.models;
 
 import jakarta.persistence.*;
 

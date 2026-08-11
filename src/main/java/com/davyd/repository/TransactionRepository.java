@@ -1,6 +1,6 @@
-package org.example.repository;
+package com.davyd.repository;
 
-import org.example.models.Transaction;
+import com.davyd.models.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

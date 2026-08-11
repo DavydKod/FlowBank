@@ -1,6 +1,6 @@
-package org.example.models;
+package com.davyd.models;
 
-import org.example.util.Validation;
+import com.davyd.util.Validation;
 
 import jakarta.persistence.*;
 
