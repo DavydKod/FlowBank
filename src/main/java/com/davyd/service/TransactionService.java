@@ -6,6 +6,8 @@ import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
+import com.davyd.util.Validation;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -45,11 +47,16 @@ public class TransactionService {
                 );
     }
 
-    public Transaction createTransaction(
+    @Transactional
+    public Transaction transfer(
             long fromAccountId,
             long toAccountId,
             BigDecimal amount
     ) {
+        if (fromAccountId == toAccountId){
+            throw new IllegalArgumentException("Bank accounts cannot be the same");
+        }
+
         BankAccount fromAccount = bankAccountRepository
                 .findById(fromAccountId)
                 .orElseThrow(
@@ -61,6 +68,11 @@ public class TransactionService {
                 .orElseThrow(
                         () -> new BankAccountNotFoundException(toAccountId)
                 );
+
+        amount = Validation.validateBigDecimalNotNullAndPositive(amount);
+
+        fromAccount.withdraw(amount);
+        toAccount.deposit(amount);
 
         Transaction transaction = new Transaction(
                 fromAccount,

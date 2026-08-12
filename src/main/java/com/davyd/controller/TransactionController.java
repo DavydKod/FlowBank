@@ -50,7 +50,7 @@ public class TransactionController {
     public ResponseEntity<Transaction> createTransaction(
             @RequestBody @Valid CreateTransactionRequest request
     ) {
-        Transaction transaction = transactionService.createTransaction(
+        Transaction transaction = transactionService.transfer(
                 request.fromAccountId(),
                 request.toAccountId(),
                 request.amount()
