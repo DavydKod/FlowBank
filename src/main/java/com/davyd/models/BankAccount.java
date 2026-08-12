@@ -1,5 +1,7 @@
 package com.davyd.models;
 
+import com.davyd.exception.InsufficientFundsException;
+import com.davyd.util.Validation;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -37,5 +39,19 @@ public class BankAccount {
 
     public BigDecimal getBalance() {
         return balance;
+    }
+
+    public void deposit(BigDecimal amount) {
+        balance = balance.add(Validation.validateBigDecimalNotNullAndPositive(amount));
+    }
+
+    public void withdraw(BigDecimal amount) {
+        amount = Validation.validateBigDecimalNotNullAndPositive(amount);
+
+        if (balance.compareTo(amount) < 0) {
+            throw new InsufficientFundsException();
+        }
+
+        balance = balance.subtract(amount);
     }
 }

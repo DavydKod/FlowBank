@@ -1,5 +1,6 @@
 package com.davyd.util;
 
+import java.math.BigDecimal;
 import java.util.regex.Pattern;
 
 public final class Validation {
@@ -35,5 +36,17 @@ public final class Validation {
         }
 
         return email;
+    }
+
+    public static BigDecimal validateBigDecimalNotNullAndPositive(BigDecimal amount){
+        if (amount == null){
+            throw new IllegalArgumentException("Amount cannot be null");
+        }
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0){
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+
+        return amount;
     }
 }
