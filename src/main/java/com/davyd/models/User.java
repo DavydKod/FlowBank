@@ -17,6 +17,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Version
+    private Long version;
+
     protected User(){}
 
     public User(String name, String email){
