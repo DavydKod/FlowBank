@@ -1,7 +1,9 @@
 package com.davyd.service;
 
 import com.davyd.exception.BankAccountNotFoundException;
+import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.TransactionNotFoundException;
+import com.davyd.models.AccountStatus;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
 import com.davyd.repository.BankAccountRepository;
@@ -53,6 +55,8 @@ public class TransactionService {
             long toAccountId,
             BigDecimal amount
     ) {
+        amount = Validation.validateBigDecimalNotNullAndPositive(amount);
+
         if (fromAccountId == toAccountId){
             throw new IllegalArgumentException("Bank accounts cannot be the same");
         }
@@ -69,7 +73,10 @@ public class TransactionService {
                         () -> new BankAccountNotFoundException(toAccountId)
                 );
 
-        amount = Validation.validateBigDecimalNotNullAndPositive(amount);
+        if (fromAccount.getStatus() != AccountStatus.ACTIVE || toAccount.getStatus() != AccountStatus.ACTIVE){
+            throw new InvalidAccountStatusException("Status of account must be active to provide transaction");
+        }
+
 
         fromAccount.withdraw(amount);
         toAccount.deposit(amount);

@@ -1,6 +1,7 @@
 package com.davyd.models;
 
 import com.davyd.exception.InsufficientFundsException;
+import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.util.Validation;
 import jakarta.persistence.*;
 
@@ -20,6 +21,10 @@ public class BankAccount {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AccountStatus status;
+
 
     protected BankAccount() {
     }
@@ -27,6 +32,7 @@ public class BankAccount {
     public BankAccount(User owner) {
         this.owner = owner;
         this.balance = BigDecimal.ZERO;
+        this.status = AccountStatus.ACTIVE;
     }
 
     public Long getId() {
@@ -53,5 +59,39 @@ public class BankAccount {
         }
 
         balance = balance.subtract(amount);
+    }
+
+    public AccountStatus getStatus() {
+        return status;
+    }
+
+    public void blockAccount() {
+        if (status != AccountStatus.ACTIVE) {
+            throw new InvalidAccountStatusException(
+                    "Only active account can be blocked"
+            );
+        }
+
+        status = AccountStatus.BLOCKED;
+    }
+
+    public void unblockAccount() {
+        if (status != AccountStatus.BLOCKED) {
+            throw new InvalidAccountStatusException(
+                    "Only blocked account can be unblocked"
+            );
+        }
+
+        status = AccountStatus.ACTIVE;
+    }
+
+    public void closeAccount() {
+        if (status == AccountStatus.CLOSED) {
+            throw new InvalidAccountStatusException(
+                    "Account is already closed"
+            );
+        }
+
+        status = AccountStatus.CLOSED;
     }
 }

@@ -6,6 +6,7 @@ import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -50,5 +51,26 @@ public class BankAccountService {
         }
 
         return bankAccountRepository.findByOwner_Id(ownerId);
+    }
+
+    @Transactional
+    public BankAccount blockAccount(long accountId) {
+        BankAccount account = getAccountById(accountId);
+        account.blockAccount();
+        return account;
+    }
+
+    @Transactional
+    public BankAccount unblockAccount(long accountId) {
+        BankAccount account = getAccountById(accountId);
+        account.unblockAccount();
+        return account;
+    }
+
+    @Transactional
+    public BankAccount closeAccount(long accountId) {
+        BankAccount account = getAccountById(accountId);
+        account.closeAccount();
+        return account;
     }
 }
