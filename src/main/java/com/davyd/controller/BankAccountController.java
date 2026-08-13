@@ -61,4 +61,31 @@ public class BankAccountController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/block")
+    public ResponseEntity<BankAccount> blockAccount(
+            @PathVariable @Positive long id
+    ) {
+        BankAccount account = bankAccountService.blockAccount(id);
+
+        return ResponseEntity.ok(account);
+    }
+
+    @PatchMapping("/{id}/unblock")
+    public ResponseEntity<BankAccount> unblockAccount(
+            @PathVariable @Positive long id
+    ) {
+        BankAccount account = bankAccountService.unblockAccount(id);
+
+        return ResponseEntity.ok(account);
+    }
+
+    @PatchMapping("/{id}/close")
+    public ResponseEntity<BankAccount> closeAccount(
+            @PathVariable @Positive long id
+    ) {
+        BankAccount account = bankAccountService.closeAccount(id);
+
+        return ResponseEntity.ok(account);
+    }
 }
