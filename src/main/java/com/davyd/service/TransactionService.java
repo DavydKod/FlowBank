@@ -61,22 +61,28 @@ public class TransactionService {
             throw new IllegalArgumentException("Bank accounts cannot be the same");
         }
 
-        BankAccount fromAccount = bankAccountRepository
-                .findById(fromAccountId)
+        //to avoid deadlocks
+        long firstId = Math.min(fromAccountId, toAccountId);
+        long secondId = Math.max(fromAccountId, toAccountId);
+
+        BankAccount firstAccount = bankAccountRepository
+                .findByIdForUpdate(firstId)
                 .orElseThrow(
-                        () -> new BankAccountNotFoundException(fromAccountId)
+                        () -> new BankAccountNotFoundException(firstId)
                 );
 
-        BankAccount toAccount = bankAccountRepository
-                .findById(toAccountId)
+        BankAccount secondAccount = bankAccountRepository
+                .findByIdForUpdate(secondId)
                 .orElseThrow(
-                        () -> new BankAccountNotFoundException(toAccountId)
+                        () -> new BankAccountNotFoundException(secondId)
                 );
+
+        BankAccount fromAccount = fromAccountId == firstId ? firstAccount : secondAccount;
+        BankAccount toAccount = toAccountId == firstId ? firstAccount : secondAccount;
 
         if (fromAccount.getStatus() != AccountStatus.ACTIVE || toAccount.getStatus() != AccountStatus.ACTIVE){
             throw new InvalidAccountStatusException("Status of account must be active to provide transaction");
         }
-
 
         fromAccount.withdraw(amount);
         toAccount.deposit(amount);
