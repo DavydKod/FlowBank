@@ -60,6 +60,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(createErrorResponse(status, exception));
     }
 
+    @ExceptionHandler(InvalidAccountStatusException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAccountStatus(InvalidAccountStatusException exception){
+        HttpStatus status = HttpStatus.CONFLICT;
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
     private ErrorResponse createErrorResponse(HttpStatus status, RuntimeException exception){
         return new ErrorResponse(status.value(), status.getReasonPhrase(), exception.getMessage(), LocalDateTime.now());
     }
