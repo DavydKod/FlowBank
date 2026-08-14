@@ -1,5 +1,7 @@
 package com.davyd.service;
 
+import com.davyd.dto.TransactionDirection;
+import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.exception.BankAccountNotFoundException;
 import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.TransactionNotFoundException;
@@ -10,6 +12,7 @@ import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import com.davyd.util.Validation;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -37,16 +40,32 @@ public class TransactionService {
         return transactionRepository.findAll();
     }
 
-    public List<Transaction> getTransactionsByAccount(long accountId) {
-        if (!bankAccountRepository.existsById(accountId)) {
-            throw new BankAccountNotFoundException(accountId);
+    public List<Transaction> getTransactionsByAccount(long accountId, TransactionDirection direction,
+                                                      TransactionSortingMethod sortingMethod) {
+        validateAccountExists(accountId);
+
+        Sort sort = getSortMethod(sortingMethod);
+
+        if (direction == TransactionDirection.FROM) {
+            return transactionRepository.findByFromAccount_Id(accountId, sort);
+        }
+
+        if (direction == TransactionDirection.TO) {
+            return transactionRepository.findByToAccount_Id(accountId, sort);
         }
 
         return transactionRepository
                 .findByFromAccount_IdOrToAccount_Id(
                         accountId,
-                        accountId
+                        accountId,
+                        getSortMethod(sortingMethod)
                 );
+    }
+
+    private void validateAccountExists(long accountId) {
+        if (!bankAccountRepository.existsById(accountId)) {
+            throw new BankAccountNotFoundException(accountId);
+        }
     }
 
     @Transactional
@@ -94,5 +113,18 @@ public class TransactionService {
         );
 
         return transactionRepository.save(transaction);
+    }
+
+    private Sort getSortMethod(TransactionSortingMethod method){
+        if (method == null){
+            return Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+
+        return switch (method){
+            case CREATED_AT_ASC ->  Sort.by(Sort.Direction.ASC, "createdAt");
+            case CREATED_AT_DESC -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case AMOUNT_DESC -> Sort.by(Sort.Direction.DESC, "amount");
+            case AMOUNT_ASC -> Sort.by(Sort.Direction.ASC, "amount");
+        };
     }
 }
