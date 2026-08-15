@@ -1,8 +1,10 @@
 package com.davyd.exception;
 
 import com.davyd.dto.ErrorResponse;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -63,6 +65,28 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidAccountStatusException.class)
     public ResponseEntity<ErrorResponse> handleInvalidAccountStatus(InvalidAccountStatusException exception){
         HttpStatus status = HttpStatus.CONFLICT;
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(
+            ObjectOptimisticLockingFailureException exception
+    ) {
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handlePessimisticLock(
+            PessimisticLockingFailureException exception
+    ) {
+        HttpStatus status = HttpStatus.CONFLICT;
+
         return ResponseEntity
                 .status(status)
                 .body(createErrorResponse(status, exception));
