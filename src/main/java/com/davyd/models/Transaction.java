@@ -20,7 +20,7 @@ public class Transaction {
     @JoinColumn(name = "to_account_id", nullable = false)
     private BankAccount toAccount;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
     @Column(nullable = false)
