@@ -1,5 +1,9 @@
 package com.davyd.util;
 
+import com.davyd.exception.InvalidAccountStatusException;
+import com.davyd.models.AccountStatus;
+import com.davyd.models.BankAccount;
+
 import java.math.BigDecimal;
 import java.util.regex.Pattern;
 

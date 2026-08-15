@@ -48,10 +48,12 @@ public class BankAccount {
     }
 
     public void deposit(BigDecimal amount) {
+        validateActive();
         balance = balance.add(Validation.validateBigDecimalNotNullAndPositive(amount));
     }
 
     public void withdraw(BigDecimal amount) {
+        validateActive();
         amount = Validation.validateBigDecimalNotNullAndPositive(amount);
 
         if (balance.compareTo(amount) < 0) {
@@ -59,6 +61,14 @@ public class BankAccount {
         }
 
         balance = balance.subtract(amount);
+    }
+
+    private void validateActive() {
+        if (status != AccountStatus.ACTIVE) {
+            throw new InvalidAccountStatusException(
+                    "Bank account must be active to perform operations"
+            );
+        }
     }
 
     public AccountStatus getStatus() {
