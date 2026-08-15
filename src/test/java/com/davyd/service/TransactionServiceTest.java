@@ -3,14 +3,19 @@ package com.davyd.service;
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.exception.BankAccountNotFoundException;
+import com.davyd.exception.InsufficientFundsException;
+import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.TransactionNotFoundException;
+import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
+import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -233,5 +238,173 @@ public class TransactionServiceTest {
                         accountId,
                         expectedSort
                 );
+    }
+
+    @Test
+    void shouldProvideCorrectTransfer(){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        accountFrom.deposit(BigDecimal.valueOf(200));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        when(bankAccountRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findByIdForUpdate(2L))
+                .thenReturn(Optional.of(accountTo));
+
+        transactionService.transfer(1L, 2L, BigDecimal.valueOf(150));
+
+        assertEquals(BigDecimal.valueOf(50), accountFrom.getBalance());
+        assertEquals(BigDecimal.valueOf(500), accountTo.getBalance());
+
+        verify(bankAccountRepository).findByIdForUpdate(1L);
+        verify(bankAccountRepository).findByIdForUpdate(2L);
+
+        verify(transactionRepository).save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldThrowWhenFromAndToAccountSame(){
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.transfer(1L, 1L, BigDecimal.valueOf(150)));
+
+        verifyNoInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository);
+    }
+
+    @Test
+    void shouldThrowWhenAccountBlocked(){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        accountFrom.deposit(BigDecimal.valueOf(200));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        accountTo.blockAccount();
+
+        when(bankAccountRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findByIdForUpdate(2L))
+                .thenReturn(Optional.of(accountTo));
+
+        assertThrows(InvalidAccountStatusException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
+
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldThrowWhenAccountClosed(){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        accountFrom.deposit(BigDecimal.valueOf(200));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        when(bankAccountRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findByIdForUpdate(2L))
+                .thenReturn(Optional.of(accountTo));
+
+        accountFrom.closeAccount();
+
+        assertThrows(InvalidAccountStatusException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
+
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldThrowWhenNegativeAmount(){
+        setUpTwoAccounts(BigDecimal.valueOf(200), BigDecimal.valueOf(350));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(-50)));
+    }
+
+    @Test
+    void shouldThrowWhenZeroAmount(){
+        setUpTwoAccounts(BigDecimal.valueOf(50), BigDecimal.valueOf(350));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(0)));
+    }
+
+    @Test
+    void shouldThrowWhenNotEnoughMoney(){
+        setUpTwoAccounts(BigDecimal.valueOf(50), BigDecimal.valueOf(350));
+
+        assertThrows(InsufficientFundsException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
+    }
+
+    private void setUpTwoAccounts(BigDecimal fromBalance, BigDecimal toBalance){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        accountFrom.deposit(fromBalance);
+        accountTo.deposit(toBalance);
+
+        when(bankAccountRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findByIdForUpdate(2L))
+                .thenReturn(Optional.of(accountTo));
+    }
+
+    @Test
+    void shouldThrowWhenFromAccountNotFound(){
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountTo = new BankAccount(userTo);
+
+        accountTo.deposit(BigDecimal.valueOf(100));
+
+        when(bankAccountRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.empty());
+        when(bankAccountRepository.findByIdForUpdate(2L))
+                .thenReturn(Optional.of(accountTo));
+
+        assertThrows(BankAccountNotFoundException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50)));
+
+        verify(bankAccountRepository).findByIdForUpdate(1L);
+        verify(bankAccountRepository, never()).findByIdForUpdate(2L);
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenToAccountNotFound(){
+        User userFrom = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+
+        accountFrom.deposit(BigDecimal.valueOf(100));
+
+        when(bankAccountRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findByIdForUpdate(2L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(BankAccountNotFoundException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50)));
+
+        verify(bankAccountRepository).findByIdForUpdate(1L);
+        verify(bankAccountRepository).findByIdForUpdate(2L);
+        verify(transactionRepository, never()).save(any());
     }
 }
