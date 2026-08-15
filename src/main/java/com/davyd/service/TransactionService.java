@@ -58,7 +58,7 @@ public class TransactionService {
                 .findByFromAccount_IdOrToAccount_Id(
                         accountId,
                         accountId,
-                        getSortMethod(sortingMethod)
+                        sort
                 );
     }
 
