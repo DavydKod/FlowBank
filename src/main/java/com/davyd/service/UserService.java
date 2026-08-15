@@ -3,9 +3,11 @@ package com.davyd.service;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.User;
 import com.davyd.repository.UserRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class UserService {
     private final UserRepository userRepository;
 
