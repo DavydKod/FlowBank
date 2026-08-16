@@ -7,6 +7,7 @@ The project is designed to model core banking operations while focusing on backe
 ## Tech Stack
 
 * Java
+* Kotlin
 * Spring Boot
 * Spring Data JPA
 * Hibernate
@@ -14,6 +15,7 @@ The project is designed to model core banking operations while focusing on backe
 * Maven
 * JUnit 5
 * Mockito
+* Flyway
 
 ## Features
 
