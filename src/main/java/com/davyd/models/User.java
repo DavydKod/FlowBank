@@ -21,9 +21,10 @@ public class User {
     @Column(nullable = false)
     private Long version;
 
-    protected User(){}
+    protected User() {
+    }
 
-    public User(String name, String email){
+    public User(String name, String email) {
         this.name = Validation.validateNotBlank(name, "Name");
         this.email = Validation.validateEmail(email);
     }

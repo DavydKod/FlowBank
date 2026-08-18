@@ -1,5 +1,6 @@
 package com.davyd.models;
 
+import com.davyd.util.Validation;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -35,6 +36,14 @@ public class Transaction {
             BankAccount toAccount,
             BigDecimal amount
     ) {
+        Validation.validateNotNull(fromAccount, "Bank account");
+        Validation.validateNotNull(toAccount, "Bank account");
+        Validation.validateNotNull(amount, "Transaction amount");
+
+        if (fromAccount == toAccount){
+            throw new IllegalArgumentException("Bank accounts must be different for one transaction");
+        }
+
         this.fromAccount = fromAccount;
         this.toAccount = toAccount;
         this.amount = amount;

@@ -65,9 +65,7 @@ public class BankAccount {
 
     private void validateActive() {
         if (status != AccountStatus.ACTIVE) {
-            throw new InvalidAccountStatusException(
-                    "Bank account must be active to perform operations"
-            );
+            throw new InvalidAccountStatusException("Bank account must be active to perform operations");
         }
     }
 
@@ -77,9 +75,7 @@ public class BankAccount {
 
     public void blockAccount() {
         if (status != AccountStatus.ACTIVE) {
-            throw new InvalidAccountStatusException(
-                    "Only active account can be blocked"
-            );
+            throw new InvalidAccountStatusException("Only active account can be blocked");
         }
 
         status = AccountStatus.BLOCKED;
@@ -87,9 +83,7 @@ public class BankAccount {
 
     public void unblockAccount() {
         if (status != AccountStatus.BLOCKED) {
-            throw new InvalidAccountStatusException(
-                    "Only blocked account can be unblocked"
-            );
+            throw new InvalidAccountStatusException("Only blocked account can be unblocked");
         }
 
         status = AccountStatus.ACTIVE;
@@ -97,9 +91,7 @@ public class BankAccount {
 
     public void closeAccount() {
         if (status == AccountStatus.CLOSED) {
-            throw new InvalidAccountStatusException(
-                    "Account is already closed"
-            );
+            throw new InvalidAccountStatusException("Account is already closed");
         }
 
         status = AccountStatus.CLOSED;
