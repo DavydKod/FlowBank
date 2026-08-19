@@ -236,14 +236,18 @@ class BankAccountTest {
 
     @Test
     void shouldThrowWhenWithdrawingFromClosedAccount() {
-        account.deposit(new BigDecimal("100.00"));
         account.closeAccount();
 
         assertThrows(
                 InvalidAccountStatusException.class,
                 () -> account.withdraw(new BigDecimal("50.00"))
         );
+    }
 
-        assertEquals(new BigDecimal("100.00"), account.getBalance());
+    @Test
+    void shouldThrowWhenClosingAccountWithBalanceNotNull(){
+        account.deposit(new BigDecimal(100));
+
+        assertThrows(InvalidAccountStatusException.class, () -> account.closeAccount());
     }
 }
