@@ -309,7 +309,6 @@ public class TransactionServiceTest {
         BankAccount accountFrom = new BankAccount(userFrom);
         BankAccount accountTo = new BankAccount(userTo);
 
-        accountFrom.deposit(BigDecimal.valueOf(200));
         accountTo.deposit(BigDecimal.valueOf(350));
 
         when(bankAccountRepository.findByIdForUpdate(1L))

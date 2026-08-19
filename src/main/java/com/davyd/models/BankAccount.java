@@ -92,6 +92,8 @@ public class BankAccount {
     public void closeAccount() {
         if (status == AccountStatus.CLOSED) {
             throw new InvalidAccountStatusException("Account is already closed");
+        } else if (balance.compareTo(BigDecimal.ZERO) != 0){
+            throw new InvalidAccountStatusException("To close the account it needs to have 0 on balance");
         }
 
         status = AccountStatus.CLOSED;
