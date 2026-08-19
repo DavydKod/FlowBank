@@ -49,12 +49,12 @@ public class BankAccount {
 
     public void deposit(BigDecimal amount) {
         validateActive();
-        balance = balance.add(Validation.validateBigDecimalNotNullAndPositive(amount));
+        balance = balance.add(Validation.validateMoney(amount));
     }
 
     public void withdraw(BigDecimal amount) {
         validateActive();
-        amount = Validation.validateBigDecimalNotNullAndPositive(amount);
+        amount = Validation.validateMoney(amount);
 
         if (balance.compareTo(amount) < 0) {
             throw new InsufficientFundsException();
