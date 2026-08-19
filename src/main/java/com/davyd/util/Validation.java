@@ -38,13 +38,25 @@ public final class Validation {
         return email;
     }
 
-    public static BigDecimal validateBigDecimalNotNullAndPositive(BigDecimal amount){
-        if (amount == null){
+    public static BigDecimal validateMoney(BigDecimal amount){
+        if (amount == null) {
             throw new IllegalArgumentException("Amount cannot be null");
         }
 
-        if (amount.compareTo(BigDecimal.ZERO) <= 0){
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be positive");
+        }
+
+        if (amount.scale() > 2) {
+            throw new IllegalArgumentException(
+                    "Amount cannot have more than 2 decimal places"
+            );
+        }
+
+        if (amount.precision() > 19) {
+            throw new IllegalArgumentException(
+                    "Amount exceeds the supported precision"
+            );
         }
 
         return amount;

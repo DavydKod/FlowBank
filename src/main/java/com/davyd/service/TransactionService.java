@@ -74,7 +74,7 @@ public class TransactionService {
             long toAccountId,
             BigDecimal amount
     ) {
-        amount = Validation.validateBigDecimalNotNullAndPositive(amount);
+        amount = Validation.validateMoney(amount);
 
         if (fromAccountId == toAccountId){
             throw new IllegalArgumentException("Bank accounts cannot be the same");

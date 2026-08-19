@@ -250,4 +250,16 @@ class BankAccountTest {
 
         assertThrows(InvalidAccountStatusException.class, () -> account.closeAccount());
     }
+
+    @Test
+    void shouldThrowWhenDepositingAmountWithIncorrectScale(){
+        assertThrows(IllegalArgumentException.class, () ->
+                account.deposit(BigDecimal.valueOf(34.675)));
+    }
+
+    @Test
+    void shouldThrowWhenWithdrawingAmountWithIncorrectScale(){
+        assertThrows(IllegalArgumentException.class, () ->
+                account.withdraw(BigDecimal.valueOf(3.55875)));
+    }
 }
