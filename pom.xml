@@ -16,10 +16,10 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>18</maven.compiler.source>
-        <maven.compiler.target>18</maven.compiler.target>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>2.2.20</kotlin.version>
+        <kotlin.version>2.3.0</kotlin.version>
     </properties>
 
     <dependencies>
@@ -148,6 +148,23 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>
