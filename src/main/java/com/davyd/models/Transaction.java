@@ -38,7 +38,7 @@ public class Transaction {
     ) {
         Validation.validateNotNull(fromAccount, "Bank account");
         Validation.validateNotNull(toAccount, "Bank account");
-        Validation.validateNotNull(amount, "Transaction amount");
+        amount = Validation.validateMoney(amount);
 
         if (fromAccount == toAccount){
             throw new IllegalArgumentException("Bank accounts must be different for one transaction");

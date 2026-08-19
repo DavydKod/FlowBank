@@ -406,4 +406,13 @@ public class TransactionServiceTest {
         verify(bankAccountRepository).findByIdForUpdate(2L);
         verify(transactionRepository, never()).save(any());
     }
+
+    @Test
+    void shouldThrowWhenTransferAmountHasIncorrectScale(){
+        setUpTwoAccounts(BigDecimal.valueOf(100), BigDecimal.valueOf(200));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.transfer(1L, 2L,
+                        BigDecimal.valueOf(50.089)));
+    }
 }

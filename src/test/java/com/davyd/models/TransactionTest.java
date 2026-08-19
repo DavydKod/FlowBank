@@ -71,4 +71,28 @@ class TransactionTest {
 
         assertThrows(IllegalArgumentException.class, () -> new Transaction(fromAccount, toAccount, null));
     }
+
+    @Test
+    void shouldThrowWhenAmountHasIncorrectScale(){
+        User user1 = new User("Davyd", "davyd@gmail.com");
+        User user2 = new User("Alex", "alex@gmail.com");
+
+        BankAccount fromAccount = new BankAccount(user1);
+        BankAccount toAccount = new BankAccount(user2);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(1.2546)));
+    }
+
+    @Test
+    void shouldThrowWhenAmountNegative(){
+        User user1 = new User("Davyd", "davyd@gmail.com");
+        User user2 = new User("Alex", "alex@gmail.com");
+
+        BankAccount fromAccount = new BankAccount(user1);
+        BankAccount toAccount = new BankAccount(user2);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(-54)));
+    }
 }
