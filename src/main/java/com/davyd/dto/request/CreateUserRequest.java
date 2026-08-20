@@ -1,4 +1,4 @@
-package com.davyd.dto;
+package com.davyd.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

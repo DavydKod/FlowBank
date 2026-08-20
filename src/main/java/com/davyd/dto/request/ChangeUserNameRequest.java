@@ -1,4 +1,4 @@
-package com.davyd.dto;
+package com.davyd.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

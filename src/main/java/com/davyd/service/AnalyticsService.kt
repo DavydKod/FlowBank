@@ -2,7 +2,7 @@ package com.davyd.service
 
 import com.davyd.repository.BankAccountRepository
 import com.davyd.repository.TransactionRepository
-import com.davyd.dto.AccountAnalytics
+import com.davyd.dto.response.AccountAnalytics
 import com.davyd.exception.BankAccountNotFoundException
 import org.springframework.stereotype.Service
 import java.math.BigDecimal

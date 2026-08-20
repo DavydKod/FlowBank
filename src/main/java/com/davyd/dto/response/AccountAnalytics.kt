@@ -1,4 +1,4 @@
-package com.davyd.dto
+package com.davyd.dto.response
 
 import java.math.BigDecimal
 

@@ -1,13 +1,13 @@
 package com.davyd.controller;
 
-import com.davyd.dto.CreateTransactionRequest;
+import com.davyd.dto.request.CreateTransactionRequest;
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
+import com.davyd.dto.response.TransactionResponse;
 import com.davyd.models.Transaction;
 import com.davyd.service.TransactionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,14 +25,14 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Transaction>> getAllTransactions() {
+    public ResponseEntity<List<TransactionResponse>> getAllTransactions() {
         return ResponseEntity.ok(
                 transactionService.getAllTransactions()
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Transaction> getTransaction(
+    public ResponseEntity<TransactionResponse> getTransaction(
             @PathVariable @Positive long id
     ) {
         return ResponseEntity.ok(
@@ -41,7 +41,7 @@ public class TransactionController {
     }
 
     @GetMapping("/by-account/{accountId}")
-    public ResponseEntity<List<Transaction>> getTransactionsByAccount(
+    public ResponseEntity<List<TransactionResponse>> getTransactionsByAccount(
             @PathVariable @Positive long accountId,
             @RequestParam(required = false) TransactionDirection direction,
             @RequestParam(required = false) TransactionSortingMethod sortingMethod
@@ -51,10 +51,10 @@ public class TransactionController {
     }
 
     @PostMapping
-    public ResponseEntity<Transaction> createTransaction(
+    public ResponseEntity<TransactionResponse> createTransaction(
             @RequestBody @Valid CreateTransactionRequest request
     ) {
-        Transaction transaction = transactionService.transfer(
+        TransactionResponse transactionResponse = transactionService.transfer(
                 request.fromAccountId(),
                 request.toAccountId(),
                 request.amount()
@@ -62,6 +62,6 @@ public class TransactionController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(transaction);
+                .body(transactionResponse);
     }
 }

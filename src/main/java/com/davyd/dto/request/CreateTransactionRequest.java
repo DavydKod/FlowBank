@@ -1,4 +1,4 @@
-package com.davyd.dto;
+package com.davyd.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;

@@ -1,8 +1,8 @@
 package com.davyd.controller;
 
-import com.davyd.dto.ChangeUserNameRequest;
-import com.davyd.dto.CreateUserRequest;
-import com.davyd.models.User;
+import com.davyd.dto.request.ChangeUserNameRequest;
+import com.davyd.dto.request.CreateUserRequest;
+import com.davyd.dto.response.UserResponse;
 import com.davyd.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -23,40 +23,40 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUser(){
-        List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<List<UserResponse>> getAllUser(){
+        List<UserResponse> userResponses = userService.getAllUsers();
+        return ResponseEntity.ok(userResponses);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUser(@PathVariable @Positive long id){
-        User user = userService.getUser(id);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<UserResponse> getUser(@PathVariable @Positive long id){
+        UserResponse userResponse = userService.getUser(id);
+        return ResponseEntity.ok(userResponse);
     }
 
     @GetMapping("/by-email")
-    public ResponseEntity<User> getUserByEmail(
+    public ResponseEntity<UserResponse> getUserByEmail(
             @RequestParam @Email String email
     ) {
-        User user = userService.getUser(email);
-        return ResponseEntity.ok(user);
+        UserResponse userResponse = userService.getUser(email);
+        return ResponseEntity.ok(userResponse);
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody @Valid CreateUserRequest createUserRequest){
-        User user = userService.createUser(createUserRequest.name(), createUserRequest.email());
+    public ResponseEntity<UserResponse> createUser(@RequestBody @Valid CreateUserRequest createUserRequest){
+        UserResponse userResponse = userService.createUser(createUserRequest.name(), createUserRequest.email());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(user);
+                .body(userResponse);
     }
 
     @PatchMapping("/{id}/name")
-    public ResponseEntity<User> changeUserName(
+    public ResponseEntity<UserResponse> changeUserName(
             @PathVariable @Positive long id,
             @RequestBody @Valid ChangeUserNameRequest request
     ) {
-        User user = userService.changeUserName(id, request.name());
-        return ResponseEntity.ok(user);
+        UserResponse userResponse = userService.changeUserName(id, request.name());
+        return ResponseEntity.ok(userResponse);
     }
 
     @DeleteMapping("/{id}")
