@@ -1,7 +1,7 @@
 package com.davyd.controller;
 
-import com.davyd.dto.CreateBankAccountRequest;
-import com.davyd.models.BankAccount;
+import com.davyd.dto.response.BankAccountResponse;
+import com.davyd.dto.request.CreateBankAccountRequest;
 import com.davyd.service.BankAccountService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -22,19 +22,19 @@ public class BankAccountController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BankAccount>> getAllAccounts() {
+    public ResponseEntity<List<BankAccountResponse>> getAllAccounts() {
         return ResponseEntity.ok(bankAccountService.getAllAccounts());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BankAccount> getAccount(
+    public ResponseEntity<BankAccountResponse> getAccount(
             @PathVariable @Positive long id
     ) {
-        return ResponseEntity.ok(bankAccountService.getAccountById(id));
+        return ResponseEntity.ok(bankAccountService.getAccount(id));
     }
 
     @GetMapping("/by-owner/{ownerId}")
-    public ResponseEntity<List<BankAccount>> getAccountsByOwner(
+    public ResponseEntity<List<BankAccountResponse>> getAccountsByOwner(
             @PathVariable @Positive long ownerId
     ) {
         return ResponseEntity.ok(
@@ -43,14 +43,14 @@ public class BankAccountController {
     }
 
     @PostMapping
-    public ResponseEntity<BankAccount> createAccount(
+    public ResponseEntity<BankAccountResponse> createAccount(
             @RequestBody @Valid CreateBankAccountRequest request
     ) {
-        BankAccount account = bankAccountService.createAccount(request.ownerId());
+        BankAccountResponse accountResponse = bankAccountService.createAccount(request.ownerId());
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(account);
+                .body(accountResponse);
     }
 
     @DeleteMapping("/{id}")
@@ -63,29 +63,29 @@ public class BankAccountController {
     }
 
     @PatchMapping("/{id}/block")
-    public ResponseEntity<BankAccount> blockAccount(
+    public ResponseEntity<BankAccountResponse> blockAccount(
             @PathVariable @Positive long id
     ) {
-        BankAccount account = bankAccountService.blockAccount(id);
+        BankAccountResponse accountResponse = bankAccountService.blockAccount(id);
 
-        return ResponseEntity.ok(account);
+        return ResponseEntity.ok(accountResponse);
     }
 
     @PatchMapping("/{id}/unblock")
-    public ResponseEntity<BankAccount> unblockAccount(
+    public ResponseEntity<BankAccountResponse> unblockAccount(
             @PathVariable @Positive long id
     ) {
-        BankAccount account = bankAccountService.unblockAccount(id);
+        BankAccountResponse accountResponse = bankAccountService.unblockAccount(id);
 
-        return ResponseEntity.ok(account);
+        return ResponseEntity.ok(accountResponse);
     }
 
     @PatchMapping("/{id}/close")
-    public ResponseEntity<BankAccount> closeAccount(
+    public ResponseEntity<BankAccountResponse> closeAccount(
             @PathVariable @Positive long id
     ) {
-        BankAccount account = bankAccountService.closeAccount(id);
+        BankAccountResponse accountResponse = bankAccountService.closeAccount(id);
 
-        return ResponseEntity.ok(account);
+        return ResponseEntity.ok(accountResponse);
     }
 }

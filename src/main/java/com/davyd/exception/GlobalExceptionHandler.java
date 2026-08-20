@@ -1,6 +1,6 @@
 package com.davyd.exception;
 
-import com.davyd.dto.ErrorResponse;
+import com.davyd.dto.response.ErrorResponse;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

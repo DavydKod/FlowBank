@@ -1,5 +1,6 @@
 package com.davyd.service;
 
+import com.davyd.dto.response.UserResponse;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.User;
 import com.davyd.repository.UserRepository;
@@ -27,8 +28,10 @@ public class UserServiceTest {
         when(userRepository.findByEmail("davyd@gmail.com"))
                 .thenReturn(Optional.of(user));
 
-        User result = userService.getUser("davyd@gmail.com");
-        assertEquals(user, result);
+        UserResponse result = userService.getUser("davyd@gmail.com");
+
+        assertEquals(user.getName(), result.name());
+        assertEquals(user.getEmail(), result.email());
     }
 
     @Test
@@ -58,14 +61,25 @@ public class UserServiceTest {
     }
 
     @Test
-    void shouldCreateUser(){
-        User user = new User("Davyd", "davyd@gmail.com");
+    void shouldCreateUser() {
         when(userRepository.existsByEmail("davyd@gmail.com"))
                 .thenReturn(false);
 
-        userService.createUser(user.getName(), user.getEmail());
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        verify(userRepository).save(any(User.class));
+        UserResponse result =
+                userService.createUser("Davyd", "davyd@gmail.com");
+
+        assertEquals("Davyd", result.name());
+        assertEquals("davyd@gmail.com", result.email());
+
+        verify(userRepository).existsByEmail("davyd@gmail.com");
+
+        verify(userRepository).save(argThat(user ->
+                user.getName().equals("Davyd")
+                        && user.getEmail().equals("davyd@gmail.com")
+        ));
     }
 
     @Test

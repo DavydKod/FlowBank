@@ -2,10 +2,12 @@ package com.davyd.service;
 
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
+import com.davyd.dto.response.TransactionResponse;
 import com.davyd.exception.BankAccountNotFoundException;
 import com.davyd.exception.InsufficientFundsException;
 import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.TransactionNotFoundException;
+import com.davyd.mapper.TransactionMapper;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
 import com.davyd.models.User;
@@ -41,15 +43,20 @@ public class TransactionServiceTest {
 
     @Test
     void shouldGetTransactionById() {
-        Transaction transaction = mock(Transaction.class);
+        Transaction transaction = createTransaction();
 
         when(transactionRepository.findById(1L))
                 .thenReturn(Optional.of(transaction));
 
-        Transaction result =
+        TransactionResponse expected =
+                TransactionMapper.toResponse(transaction);
+
+        TransactionResponse result =
                 transactionService.getTransactionById(1L);
 
-        assertEquals(transaction, result);
+        assertEquals(expected, result);
+
+        verify(transactionRepository).findById(1L);
     }
 
     @Test
@@ -61,12 +68,14 @@ public class TransactionServiceTest {
                 TransactionNotFoundException.class,
                 () -> transactionService.getTransactionById(1L)
         );
+
+        verify(transactionRepository).findById(1L);
     }
 
     @Test
     void shouldGetAllTransactions() {
-        Transaction transaction1 = mock(Transaction.class);
-        Transaction transaction2 = mock(Transaction.class);
+        Transaction transaction1 = createTransaction();
+        Transaction transaction2 = createTransaction();
 
         List<Transaction> transactions =
                 List.of(transaction1, transaction2);
@@ -74,17 +83,24 @@ public class TransactionServiceTest {
         when(transactionRepository.findAll())
                 .thenReturn(transactions);
 
-        List<Transaction> result =
+        List<TransactionResponse> expected = transactions.stream()
+                .map(TransactionMapper::toResponse)
+                .toList();
+
+        List<TransactionResponse> result =
                 transactionService.getAllTransactions();
 
-        assertEquals(transactions, result);
+        assertEquals(expected, result);
+        assertEquals(2, result.size());
+
+        verify(transactionRepository).findAll();
     }
 
     @Test
     void shouldGetFromTransactionsByAccount() {
         long accountId = 1L;
 
-        Transaction transaction = mock(Transaction.class);
+        Transaction transaction = createTransaction();
         List<Transaction> transactions = List.of(transaction);
 
         Sort sort = Sort.by(
@@ -98,14 +114,20 @@ public class TransactionServiceTest {
         when(transactionRepository.findByFromAccount_Id(accountId, sort))
                 .thenReturn(transactions);
 
-        List<Transaction> result =
+        List<TransactionResponse> expected = transactions.stream()
+                .map(TransactionMapper::toResponse)
+                .toList();
+
+        List<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
                         accountId,
                         TransactionDirection.FROM,
                         TransactionSortingMethod.CREATED_AT_DESC
                 );
 
-        assertEquals(transactions, result);
+        assertEquals(expected, result);
+
+        verify(bankAccountRepository).existsById(accountId);
 
         verify(transactionRepository)
                 .findByFromAccount_Id(accountId, sort);
@@ -115,7 +137,7 @@ public class TransactionServiceTest {
     void shouldGetToTransactionsByAccount() {
         long accountId = 1L;
 
-        Transaction transaction = mock(Transaction.class);
+        Transaction transaction = createTransaction();
         List<Transaction> transactions = List.of(transaction);
 
         Sort sort = Sort.by(
@@ -129,14 +151,20 @@ public class TransactionServiceTest {
         when(transactionRepository.findByToAccount_Id(accountId, sort))
                 .thenReturn(transactions);
 
-        List<Transaction> result =
+        List<TransactionResponse> expected = transactions.stream()
+                .map(TransactionMapper::toResponse)
+                .toList();
+
+        List<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
                         accountId,
                         TransactionDirection.TO,
                         TransactionSortingMethod.AMOUNT_ASC
                 );
 
-        assertEquals(transactions, result);
+        assertEquals(expected, result);
+
+        verify(bankAccountRepository).existsById(accountId);
 
         verify(transactionRepository)
                 .findByToAccount_Id(accountId, sort);
@@ -146,7 +174,7 @@ public class TransactionServiceTest {
     void shouldGetAllTransactionsByAccountWhenDirectionIsNull() {
         long accountId = 1L;
 
-        Transaction transaction = mock(Transaction.class);
+        Transaction transaction = createTransaction();
         List<Transaction> transactions = List.of(transaction);
 
         Sort sort = Sort.by(
@@ -163,14 +191,20 @@ public class TransactionServiceTest {
                 sort
         )).thenReturn(transactions);
 
-        List<Transaction> result =
+        List<TransactionResponse> expected = transactions.stream()
+                .map(TransactionMapper::toResponse)
+                .toList();
+
+        List<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
                         accountId,
                         null,
                         null
                 );
 
-        assertEquals(transactions, result);
+        assertEquals(expected, result);
+
+        verify(bankAccountRepository).existsById(accountId);
 
         verify(transactionRepository)
                 .findByFromAccount_IdOrToAccount_Id(
@@ -255,6 +289,9 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(accountFrom));
         when(bankAccountRepository.findByIdForUpdate(2L))
                 .thenReturn(Optional.of(accountTo));
+
+        when(transactionRepository.save(any(Transaction.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         transactionService.transfer(1L, 2L, BigDecimal.valueOf(150));
 
@@ -414,5 +451,26 @@ public class TransactionServiceTest {
         assertThrows(IllegalArgumentException.class, () ->
                 transactionService.transfer(1L, 2L,
                         BigDecimal.valueOf(50.089)));
+    }
+
+    private Transaction createTransaction() {
+        User sender = new User(
+                "Davyd",
+                "davyd@gmail.com"
+        );
+
+        User receiver = new User(
+                "Receiver",
+                "receiver@gmail.com"
+        );
+
+        BankAccount fromAccount = new BankAccount(sender);
+        BankAccount toAccount = new BankAccount(receiver);
+
+        return new Transaction(
+                fromAccount,
+                toAccount,
+                new BigDecimal("100.00")
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.davyd.service;
 
+import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.exception.BankAccountNotFoundException;
 import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.UserNotFoundException;
@@ -18,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-public class BankAccountServiceTest {
+class BankAccountServiceTest {
 
     private BankAccountService bankAccountService;
     private BankAccountRepository bankAccountRepository;
@@ -37,17 +38,20 @@ public class BankAccountServiceTest {
 
     @Test
     void shouldCreateAccount() {
-        User owner = new User("Davyd", "davyd@gmail.com");
+        User owner = mock(User.class);
 
+        when(owner.getId()).thenReturn(1L);
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(owner));
 
         when(bankAccountRepository.save(any(BankAccount.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        BankAccount result = bankAccountService.createAccount(1L);
+        BankAccountResponse result =
+                bankAccountService.createAccount(1L);
 
-        assertEquals(owner, result.getOwner());
+        assertEquals(1L, result.ownerId());
+        assertEquals(AccountStatus.ACTIVE, result.status());
 
         verify(userRepository).findById(1L);
         verify(bankAccountRepository).save(any(BankAccount.class));
@@ -63,21 +67,31 @@ public class BankAccountServiceTest {
                 () -> bankAccountService.createAccount(1L)
         );
 
+        verify(userRepository).findById(1L);
+
         verify(bankAccountRepository, never())
                 .save(any(BankAccount.class));
     }
 
     @Test
     void shouldGetAccountById() {
-        User owner = new User("Davyd", "davyd@gmail.com");
+        User owner = mock(User.class);
+        when(owner.getId()).thenReturn(1L);
+
         BankAccount account = new BankAccount(owner);
 
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        BankAccount result = bankAccountService.getAccountById(1L);
+        BankAccountResponse result =
+                bankAccountService.getAccount(1L);
 
-        assertEquals(account, result);
+        assertEquals(account.getId(), result.id());
+        assertEquals(owner.getId(), result.ownerId());
+        assertEquals(account.getBalance(), result.balance());
+        assertEquals(account.getStatus(), result.status());
+
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
@@ -87,8 +101,10 @@ public class BankAccountServiceTest {
 
         assertThrows(
                 BankAccountNotFoundException.class,
-                () -> bankAccountService.getAccountById(1L)
+                () -> bankAccountService.getAccount(1L)
         );
+
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
@@ -101,12 +117,14 @@ public class BankAccountServiceTest {
 
         bankAccountService.deleteAccount(1L);
 
+        verify(bankAccountRepository).findById(1L);
         verify(bankAccountRepository).delete(account);
     }
 
     @Test
     void shouldGetAccountsByOwner() {
-        User owner = new User("Davyd", "davyd@gmail.com");
+        User owner = mock(User.class);
+        when(owner.getId()).thenReturn(1L);
 
         BankAccount account1 = new BankAccount(owner);
         BankAccount account2 = new BankAccount(owner);
@@ -119,10 +137,21 @@ public class BankAccountServiceTest {
         when(bankAccountRepository.findByOwner_Id(1L))
                 .thenReturn(accounts);
 
-        List<BankAccount> result =
+        List<BankAccountResponse> result =
                 bankAccountService.getAccountsByOwner(1L);
 
-        assertEquals(accounts, result);
+        assertEquals(2, result.size());
+
+        assertEquals(1L, result.get(0).ownerId());
+        assertEquals(account1.getBalance(), result.get(0).balance());
+        assertEquals(account1.getStatus(), result.get(0).status());
+
+        assertEquals(1L, result.get(1).ownerId());
+        assertEquals(account2.getBalance(), result.get(1).balance());
+        assertEquals(account2.getStatus(), result.get(1).status());
+
+        verify(userRepository).existsById(1L);
+        verify(bankAccountRepository).findByOwner_Id(1L);
     }
 
     @Test
@@ -135,8 +164,10 @@ public class BankAccountServiceTest {
                 () -> bankAccountService.getAccountsByOwner(1L)
         );
 
+        verify(userRepository).existsById(1L);
+
         verify(bankAccountRepository, never())
-                .findByOwner_Id(1L);
+                .findByOwner_Id(anyLong());
     }
 
     @Test
@@ -147,12 +178,13 @@ public class BankAccountServiceTest {
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        BankAccount result =
+        BankAccountResponse result =
                 bankAccountService.blockAccount(1L);
 
-        assertEquals(account, result);
+        assertEquals(AccountStatus.BLOCKED, result.status());
+        assertEquals(AccountStatus.BLOCKED, account.getStatus());
 
-        assertEquals(AccountStatus.BLOCKED, result.getStatus());
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
@@ -165,39 +197,52 @@ public class BankAccountServiceTest {
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        BankAccount result =
+        BankAccountResponse result =
                 bankAccountService.unblockAccount(1L);
 
-        assertEquals(AccountStatus.ACTIVE, result.getStatus());
+        assertEquals(AccountStatus.ACTIVE, result.status());
+        assertEquals(AccountStatus.ACTIVE, account.getStatus());
+
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
-    void shouldThrowWhenUnblockingActiveAccount(){
+    void shouldThrowWhenUnblockingActiveAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
         BankAccount account = new BankAccount(owner);
 
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        assertThrows(InvalidAccountStatusException.class, () -> bankAccountService.unblockAccount(1L));
+        assertThrows(
+                InvalidAccountStatusException.class,
+                () -> bankAccountService.unblockAccount(1L)
+        );
+
+        assertEquals(AccountStatus.ACTIVE, account.getStatus());
+
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
-    void shouldCloseActiveAccount(){
+    void shouldCloseActiveAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
         BankAccount account = new BankAccount(owner);
 
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        BankAccount result =
+        BankAccountResponse result =
                 bankAccountService.closeAccount(1L);
 
-        assertEquals(AccountStatus.CLOSED, result.getStatus());
+        assertEquals(AccountStatus.CLOSED, result.status());
+        assertEquals(AccountStatus.CLOSED, account.getStatus());
+
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
-    void shouldCloseBlockedAccount(){
+    void shouldCloseBlockedAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
         BankAccount account = new BankAccount(owner);
 
@@ -206,14 +251,17 @@ public class BankAccountServiceTest {
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        BankAccount result =
+        BankAccountResponse result =
                 bankAccountService.closeAccount(1L);
 
-        assertEquals(AccountStatus.CLOSED, result.getStatus());
+        assertEquals(AccountStatus.CLOSED, result.status());
+        assertEquals(AccountStatus.CLOSED, account.getStatus());
+
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
-    void shouldThrowWhenBlockingClosedAccount(){
+    void shouldThrowWhenBlockingClosedAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
         BankAccount account = new BankAccount(owner);
 
@@ -222,11 +270,18 @@ public class BankAccountServiceTest {
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        assertThrows(InvalidAccountStatusException.class, () -> bankAccountService.blockAccount(1L));
+        assertThrows(
+                InvalidAccountStatusException.class,
+                () -> bankAccountService.blockAccount(1L)
+        );
+
+        assertEquals(AccountStatus.CLOSED, account.getStatus());
+
+        verify(bankAccountRepository).findById(1L);
     }
 
     @Test
-    void shouldThrowWhenUnblockingClosedAccount(){
+    void shouldThrowWhenUnblockingClosedAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
         BankAccount account = new BankAccount(owner);
 
@@ -235,6 +290,13 @@ public class BankAccountServiceTest {
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
-        assertThrows(InvalidAccountStatusException.class, () -> bankAccountService.unblockAccount(1L));
+        assertThrows(
+                InvalidAccountStatusException.class,
+                () -> bankAccountService.unblockAccount(1L)
+        );
+
+        assertEquals(AccountStatus.CLOSED, account.getStatus());
+
+        verify(bankAccountRepository).findById(1L);
     }
 }

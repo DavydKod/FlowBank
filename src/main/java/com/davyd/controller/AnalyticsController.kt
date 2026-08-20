@@ -1,6 +1,6 @@
 package com.davyd.controller
 
-import com.davyd.dto.AccountAnalytics
+import com.davyd.dto.response.AccountAnalytics
 import com.davyd.service.AnalyticsService
 import jakarta.validation.constraints.Positive
 import org.springframework.http.ResponseEntity

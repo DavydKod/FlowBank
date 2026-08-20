@@ -1,7 +1,9 @@
 package com.davyd.service;
 
+import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.exception.BankAccountNotFoundException;
 import com.davyd.exception.UserNotFoundException;
+import com.davyd.mapper.BankAccountMapper;
 import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
@@ -22,55 +24,65 @@ public class BankAccountService {
         this.userRepository = userRepository;
     }
 
-    public BankAccount createAccount(long ownerId) {
+    public BankAccountResponse createAccount(long ownerId) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new UserNotFoundException(ownerId));
 
         BankAccount account = new BankAccount(owner);
 
-        return bankAccountRepository.save(account);
+        return BankAccountMapper.toResponse(bankAccountRepository.save(account));
     }
 
-    public BankAccount getAccountById(long id) {
+    public BankAccountResponse getAccount(long id) {
+        BankAccount account = bankAccountRepository.findById(id)
+                .orElseThrow(() -> new BankAccountNotFoundException(id));
+
+        return BankAccountMapper.toResponse(account);
+    }
+
+    private BankAccount getAccountEntity(long id) {
         return bankAccountRepository.findById(id)
                 .orElseThrow(() -> new BankAccountNotFoundException(id));
     }
 
-    public List<BankAccount> getAllAccounts() {
-        return bankAccountRepository.findAll();
+    public List<BankAccountResponse> getAllAccounts() {
+
+        return bankAccountRepository.findAll()
+                .stream().map(BankAccountMapper::toResponse).toList();
     }
 
     public void deleteAccount(long id) {
-        BankAccount account = getAccountById(id);
+        BankAccount account = getAccountEntity(id);
         bankAccountRepository.delete(account);
     }
 
-    public List<BankAccount> getAccountsByOwner(long ownerId) {
+    public List<BankAccountResponse> getAccountsByOwner(long ownerId) {
         if (!userRepository.existsById(ownerId)) {
             throw new UserNotFoundException(ownerId);
         }
 
-        return bankAccountRepository.findByOwner_Id(ownerId);
+        return bankAccountRepository.findByOwner_Id(ownerId).stream()
+                .map(BankAccountMapper::toResponse).toList();
     }
 
     @Transactional
-    public BankAccount blockAccount(long accountId) {
-        BankAccount account = getAccountById(accountId);
+    public BankAccountResponse blockAccount(long accountId) {
+        BankAccount account = getAccountEntity(accountId);
         account.blockAccount();
-        return account;
+        return BankAccountMapper.toResponse(account);
     }
 
     @Transactional
-    public BankAccount unblockAccount(long accountId) {
-        BankAccount account = getAccountById(accountId);
+    public BankAccountResponse unblockAccount(long accountId) {
+        BankAccount account = getAccountEntity(accountId);
         account.unblockAccount();
-        return account;
+        return BankAccountMapper.toResponse(account);
     }
 
     @Transactional
-    public BankAccount closeAccount(long accountId) {
-        BankAccount account = getAccountById(accountId);
+    public BankAccountResponse closeAccount(long accountId) {
+        BankAccount account = getAccountEntity(accountId);
         account.closeAccount();
-        return account;
+        return BankAccountMapper.toResponse(account);
     }
 }

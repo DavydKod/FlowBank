@@ -2,9 +2,11 @@ package com.davyd.service;
 
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
+import com.davyd.dto.response.TransactionResponse;
 import com.davyd.exception.BankAccountNotFoundException;
 import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.TransactionNotFoundException;
+import com.davyd.mapper.TransactionMapper;
 import com.davyd.models.AccountStatus;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
@@ -31,27 +33,32 @@ public class TransactionService {
         this.bankAccountRepository = bankAccountRepository;
     }
 
-    public Transaction getTransactionById(long id) {
-        return transactionRepository.findById(id)
+    public TransactionResponse getTransactionById(long id) {
+        Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new TransactionNotFoundException(id));
+
+        return TransactionMapper.toResponse(transaction);
     }
 
-    public List<Transaction> getAllTransactions() {
-        return transactionRepository.findAll();
+    public List<TransactionResponse> getAllTransactions() {
+        return transactionRepository.findAll()
+                .stream().map(TransactionMapper::toResponse).toList();
     }
 
-    public List<Transaction> getTransactionsByAccount(long accountId, TransactionDirection direction,
+    public List<TransactionResponse> getTransactionsByAccount(long accountId, TransactionDirection direction,
                                                       TransactionSortingMethod sortingMethod) {
         validateAccountExists(accountId);
 
         Sort sort = getSortMethod(sortingMethod);
 
         if (direction == TransactionDirection.FROM) {
-            return transactionRepository.findByFromAccount_Id(accountId, sort);
+            return transactionRepository.findByFromAccount_Id(accountId, sort)
+                    .stream().map(TransactionMapper::toResponse).toList();
         }
 
         if (direction == TransactionDirection.TO) {
-            return transactionRepository.findByToAccount_Id(accountId, sort);
+            return transactionRepository.findByToAccount_Id(accountId, sort)
+                    .stream().map(TransactionMapper::toResponse).toList();
         }
 
         return transactionRepository
@@ -59,7 +66,7 @@ public class TransactionService {
                         accountId,
                         accountId,
                         sort
-                );
+                ).stream().map(TransactionMapper::toResponse).toList();
     }
 
     private void validateAccountExists(long accountId) {
@@ -69,7 +76,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction transfer(
+    public TransactionResponse transfer(
             long fromAccountId,
             long toAccountId,
             BigDecimal amount
@@ -112,7 +119,8 @@ public class TransactionService {
                 amount
         );
 
-        return transactionRepository.save(transaction);
+        return TransactionMapper
+                .toResponse(transactionRepository.save(transaction));
     }
 
     private Sort getSortMethod(TransactionSortingMethod method){
