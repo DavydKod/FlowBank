@@ -1,0 +1,5 @@
+ALTER TABLE bank_accounts
+    ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
+
+ALTER TABLE bank_accounts
+    ALTER COLUMN version DROP DEFAULT;
