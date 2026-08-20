@@ -25,6 +25,10 @@ public class BankAccount {
     @Column(nullable = false)
     private AccountStatus status;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
 
     protected BankAccount() {
     }
