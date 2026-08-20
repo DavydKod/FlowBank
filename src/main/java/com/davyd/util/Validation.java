@@ -53,7 +53,7 @@ public final class Validation {
             );
         }
 
-        if (amount.precision() > 19) {
+        if (amount.precision() > 17) {
             throw new IllegalArgumentException(
                     "Amount exceeds the supported precision"
             );
