@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     List<Transaction> findByFromAccount_Id(Long accountId, Sort sort);
@@ -74,4 +75,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("accountId") Long accountId,
             @Param("since") LocalDateTime since
     );
+
+    Optional<Transaction> findByIdempotencyKey(String idempotencyKey);
 }

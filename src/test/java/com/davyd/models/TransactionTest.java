@@ -22,7 +22,7 @@ class TransactionTest {
         LocalDateTime beforeCreation = LocalDateTime.now();
 
         Transaction transaction =
-                new Transaction(fromAccount, toAccount, amount);
+                new Transaction(fromAccount, toAccount, amount, "key");
 
         LocalDateTime afterCreation = LocalDateTime.now();
 
@@ -46,7 +46,7 @@ class TransactionTest {
         BigDecimal amount = new BigDecimal("150.00");
 
         assertThrows(IllegalArgumentException.class, () ->
-                new Transaction(null, toAccount, amount));
+                new Transaction(null, toAccount, amount, "key"));
     }
 
     @Test
@@ -58,7 +58,7 @@ class TransactionTest {
         BigDecimal amount = new BigDecimal("150.00");
 
         assertThrows(IllegalArgumentException.class, () ->
-                new Transaction(fromAccount, null, amount));
+                new Transaction(fromAccount, null, amount, "key"));
     }
 
     @Test
@@ -69,7 +69,7 @@ class TransactionTest {
         BankAccount fromAccount = new BankAccount(user1);
         BankAccount toAccount = new BankAccount(user2);
 
-        assertThrows(IllegalArgumentException.class, () -> new Transaction(fromAccount, toAccount, null));
+        assertThrows(IllegalArgumentException.class, () -> new Transaction(fromAccount, toAccount, null, "key"));
     }
 
     @Test
@@ -81,7 +81,7 @@ class TransactionTest {
         BankAccount toAccount = new BankAccount(user2);
 
         assertThrows(IllegalArgumentException.class,
-                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(1.2546)));
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(1.2546), "key"));
     }
 
     @Test
@@ -93,6 +93,6 @@ class TransactionTest {
         BankAccount toAccount = new BankAccount(user2);
 
         assertThrows(IllegalArgumentException.class,
-                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(-54)));
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(-54), "key"));
     }
 }
