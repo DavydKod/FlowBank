@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface BankAccountRepository extends JpaRepository<BankAccount, Long> {
     List<BankAccount> findByOwner_Id(Long ownerId);
+    boolean existsByOwnerId(Long ownerId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM BankAccount a WHERE a.id = :id")
