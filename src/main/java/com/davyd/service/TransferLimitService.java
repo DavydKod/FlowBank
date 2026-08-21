@@ -1,6 +1,6 @@
 package com.davyd.service;
 
-import com.davyd.exception.BankAccountDailyTransferReachException;
+import com.davyd.exception.DailyTransferLimitExceededException;
 import com.davyd.models.BankAccount;
 import com.davyd.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,7 @@ public class TransferLimitService {
     public void validateDailyTransferLimit(BankAccount account, BigDecimal amount){
         if (amount.add(transferredAmountOfDay(account))
                 .compareTo(account.getDailyTransferLimit()) > 0){
-            throw new BankAccountDailyTransferReachException("Impossible to transfer money. " +
+            throw new DailyTransferLimitExceededException("Impossible to transfer money. " +
                     "Daily transfer limit reached");
         }
     }

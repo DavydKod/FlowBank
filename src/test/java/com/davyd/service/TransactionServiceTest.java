@@ -3,10 +3,7 @@ package com.davyd.service;
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.dto.response.TransactionResponse;
-import com.davyd.exception.BankAccountNotFoundException;
-import com.davyd.exception.InsufficientFundsException;
-import com.davyd.exception.InvalidAccountStatusException;
-import com.davyd.exception.TransactionNotFoundException;
+import com.davyd.exception.*;
 import com.davyd.mapper.TransactionMapper;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
@@ -15,6 +12,10 @@ import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
@@ -24,25 +25,19 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class TransactionServiceTest {
-
-    private TransactionService transactionService;
+    @Mock
     private TransactionRepository transactionRepository;
+
+    @Mock
     private BankAccountRepository bankAccountRepository;
+
+    @Mock
     private TransferLimitService transferLimitService;
 
-    @BeforeEach
-    void setUp() {
-        transactionRepository = mock(TransactionRepository.class);
-        bankAccountRepository = mock(BankAccountRepository.class);
-        transferLimitService = mock(TransferLimitService.class);
-
-        transactionService = new TransactionService(
-                transactionRepository,
-                bankAccountRepository,
-                transferLimitService
-        );
-    }
+    @InjectMocks
+    private TransactionService transactionService;
 
     @Test
     void shouldGetTransactionById() {
@@ -367,42 +362,42 @@ public class TransactionServiceTest {
 
     @Test
     void shouldThrowWhenNegativeAmount(){
-        setUpTwoAccounts(BigDecimal.valueOf(200), BigDecimal.valueOf(350));
-
         assertThrows(IllegalArgumentException.class, () ->
                 transactionService.transfer(1L, 2L, BigDecimal.valueOf(-50)));
+
+        verifyNoInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository);
     }
 
     @Test
     void shouldThrowWhenZeroAmount(){
-        setUpTwoAccounts(BigDecimal.valueOf(50), BigDecimal.valueOf(350));
-
         assertThrows(IllegalArgumentException.class, () ->
                 transactionService.transfer(1L, 2L, BigDecimal.valueOf(0)));
+
+        verifyNoInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository);
     }
 
     @Test
     void shouldThrowWhenNotEnoughMoney(){
-        setUpTwoAccounts(BigDecimal.valueOf(50), BigDecimal.valueOf(350));
-
-        assertThrows(InsufficientFundsException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
-    }
-
-    private void setUpTwoAccounts(BigDecimal fromBalance, BigDecimal toBalance){
         User userFrom = new User("Joel", "joel@gmail.com");
         User userTo = new User("Adriana", "adri@gmail.com");
 
         BankAccount accountFrom = new BankAccount(userFrom);
         BankAccount accountTo = new BankAccount(userTo);
 
-        accountFrom.deposit(fromBalance);
-        accountTo.deposit(toBalance);
+        accountFrom.deposit(BigDecimal.valueOf(50));
+        accountTo.deposit(BigDecimal.valueOf(350));
 
         when(bankAccountRepository.findByIdForUpdate(1L))
                 .thenReturn(Optional.of(accountFrom));
         when(bankAccountRepository.findByIdForUpdate(2L))
                 .thenReturn(Optional.of(accountTo));
+
+        assertThrows(InsufficientFundsException.class, () ->
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
+
+        verifyNoInteractions(transactionRepository);
     }
 
     @Test
@@ -415,8 +410,6 @@ public class TransactionServiceTest {
 
         when(bankAccountRepository.findByIdForUpdate(1L))
                 .thenReturn(Optional.empty());
-        when(bankAccountRepository.findByIdForUpdate(2L))
-                .thenReturn(Optional.of(accountTo));
 
         assertThrows(BankAccountNotFoundException.class, () ->
                 transactionService.transfer(1L, 2L, BigDecimal.valueOf(50)));
@@ -449,11 +442,12 @@ public class TransactionServiceTest {
 
     @Test
     void shouldThrowWhenTransferAmountHasIncorrectScale(){
-        setUpTwoAccounts(BigDecimal.valueOf(100), BigDecimal.valueOf(200));
-
         assertThrows(IllegalArgumentException.class, () ->
                 transactionService.transfer(1L, 2L,
                         BigDecimal.valueOf(50.089)));
+
+        verifyNoInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository);
     }
 
     private Transaction createTransaction() {
@@ -475,5 +469,64 @@ public class TransactionServiceTest {
                 toAccount,
                 new BigDecimal("100.00")
         );
+    }
+
+    @Test
+    void shouldRejectTransferWhenDailyLimitWouldBeExceeded() {
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        accountFrom.deposit(BigDecimal.valueOf(900));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        BigDecimal transferAmount = BigDecimal.valueOf(150);
+
+        when(bankAccountRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(accountFrom));
+
+        when(bankAccountRepository.findByIdForUpdate(2L))
+                .thenReturn(Optional.of(accountTo));
+
+        doThrow(new DailyTransferLimitExceededException(
+                "24-hour transfer limit exceeded"
+        ))
+                .when(transferLimitService)
+                .validateDailyTransferLimit(
+                        accountFrom,
+                        transferAmount
+                );
+
+        assertThrows(
+                DailyTransferLimitExceededException.class,
+                () -> transactionService.transfer(
+                        1L,
+                        2L,
+                        transferAmount
+                )
+        );
+
+        assertEquals(
+                0,
+                BigDecimal.valueOf(900)
+                        .compareTo(accountFrom.getBalance())
+        );
+
+        assertEquals(
+                0,
+                BigDecimal.valueOf(350)
+                        .compareTo(accountTo.getBalance())
+        );
+
+        verify(transferLimitService)
+                .validateDailyTransferLimit(
+                        accountFrom,
+                        transferAmount
+                );
+
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
     }
 }
