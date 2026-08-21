@@ -1,12 +1,14 @@
 package com.davyd.service;
 
 import com.davyd.dto.response.UserResponse;
+import com.davyd.exception.EmailAlreadyExistsException;
 import com.davyd.exception.UserDeletionNotAllowedException;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.mapper.UserMapper;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -57,9 +59,11 @@ public class UserService {
             );
         }
 
-        User user = new User(name, email);
-
-        return UserMapper.toResponse(userRepository.save(user));
+        try {
+            return UserMapper.toResponse(userRepository.save(new User(name, email)));
+        } catch (DataIntegrityViolationException e){
+            throw new EmailAlreadyExistsException(email);
+        }
     }
 
     public UserResponse changeUserName(long id, String newName) {
