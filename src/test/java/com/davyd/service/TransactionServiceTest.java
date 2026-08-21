@@ -29,15 +29,18 @@ public class TransactionServiceTest {
     private TransactionService transactionService;
     private TransactionRepository transactionRepository;
     private BankAccountRepository bankAccountRepository;
+    private TransferLimitService transferLimitService;
 
     @BeforeEach
     void setUp() {
         transactionRepository = mock(TransactionRepository.class);
         bankAccountRepository = mock(BankAccountRepository.class);
+        transferLimitService = mock(TransferLimitService.class);
 
         transactionService = new TransactionService(
                 transactionRepository,
-                bankAccountRepository
+                bankAccountRepository,
+                transferLimitService
         );
     }
 

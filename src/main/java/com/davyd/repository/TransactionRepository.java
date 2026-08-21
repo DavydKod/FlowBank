@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
@@ -62,4 +63,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     WHERE t.toAccount.id = :accountId
     """)
     BigDecimal getLargestReceivedTransaction(@Param("accountId") Long bankAccountId);
+
+    @Query("""
+    SELECT COALESCE(SUM(t.amount), 0)
+    FROM Transaction t
+    WHERE t.fromAccount.id = :accountId
+      AND t.createdAt >= :since
+    """)
+    BigDecimal getTotalSentSince(
+            @Param("accountId") Long accountId,
+            @Param("since") LocalDateTime since
+    );
 }

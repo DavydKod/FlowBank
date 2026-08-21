@@ -24,13 +24,16 @@ import java.util.List;
 public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final BankAccountRepository bankAccountRepository;
+    private final TransferLimitService transferLimitService;
 
     public TransactionService(
             TransactionRepository transactionRepository,
-            BankAccountRepository bankAccountRepository
+            BankAccountRepository bankAccountRepository,
+            TransferLimitService transferLimitService
     ) {
         this.transactionRepository = transactionRepository;
         this.bankAccountRepository = bankAccountRepository;
+        this.transferLimitService = transferLimitService;
     }
 
     public TransactionResponse getTransactionById(long id) {
@@ -109,6 +112,8 @@ public class TransactionService {
         if (fromAccount.getStatus() != AccountStatus.ACTIVE || toAccount.getStatus() != AccountStatus.ACTIVE){
             throw new InvalidAccountStatusException("Status of account must be active to provide transaction");
         }
+
+        transferLimitService.validateDailyTransferLimit(fromAccount, amount);
 
         fromAccount.withdraw(amount);
         toAccount.deposit(amount);
