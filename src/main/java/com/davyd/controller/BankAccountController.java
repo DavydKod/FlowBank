@@ -53,15 +53,6 @@ public class BankAccountController {
                 .body(accountResponse);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAccount(
-            @PathVariable @Positive long id
-    ) {
-        bankAccountService.deleteAccount(id);
-
-        return ResponseEntity.noContent().build();
-    }
-
     @PatchMapping("/{id}/block")
     public ResponseEntity<BankAccountResponse> blockAccount(
             @PathVariable @Positive long id

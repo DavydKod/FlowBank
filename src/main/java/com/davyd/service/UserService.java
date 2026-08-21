@@ -1,9 +1,11 @@
 package com.davyd.service;
 
 import com.davyd.dto.response.UserResponse;
+import com.davyd.exception.UserDeletionNotAllowedException;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.mapper.UserMapper;
 import com.davyd.models.User;
+import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -12,9 +14,11 @@ import java.util.List;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final BankAccountRepository bankAccountRepository;
 
-    public UserService(UserRepository userRepository){
+    public UserService(UserRepository userRepository, BankAccountRepository bankAccountRepository){
         this.userRepository = userRepository;
+        this.bankAccountRepository = bankAccountRepository;
     }
 
     public UserResponse getUser(long id) {
@@ -68,6 +72,10 @@ public class UserService {
 
     public void deleteUser(long id) {
         User user = getUserEntity(id);
+
+        if (bankAccountRepository.existsByOwnerId(id)){
+            throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
+        }
         userRepository.delete(user);
     }
 

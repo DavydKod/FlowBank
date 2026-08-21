@@ -108,20 +108,6 @@ class BankAccountServiceTest {
     }
 
     @Test
-    void shouldDeleteExistingAccount() {
-        User owner = new User("Davyd", "davyd@gmail.com");
-        BankAccount account = new BankAccount(owner);
-
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(account));
-
-        bankAccountService.deleteAccount(1L);
-
-        verify(bankAccountRepository).findById(1L);
-        verify(bankAccountRepository).delete(account);
-    }
-
-    @Test
     void shouldGetAccountsByOwner() {
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(1L);

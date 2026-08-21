@@ -51,11 +51,6 @@ public class BankAccountService {
                 .stream().map(BankAccountMapper::toResponse).toList();
     }
 
-    public void deleteAccount(long id) {
-        BankAccount account = getAccountEntity(id);
-        bankAccountRepository.delete(account);
-    }
-
     public List<BankAccountResponse> getAccountsByOwner(long ownerId) {
         if (!userRepository.existsById(ownerId)) {
             throw new UserNotFoundException(ownerId);

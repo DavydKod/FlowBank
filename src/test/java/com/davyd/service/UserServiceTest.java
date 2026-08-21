@@ -3,6 +3,7 @@ package com.davyd.service;
 import com.davyd.dto.response.UserResponse;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.User;
+import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,11 +16,13 @@ import static org.mockito.Mockito.*;
 public class UserServiceTest {
     private UserService userService;
     private UserRepository userRepository;
+    private BankAccountRepository bankAccountRepository;
 
     @BeforeEach
     void setUp(){
         userRepository = mock(UserRepository.class);
-        userService = new UserService(userRepository);
+        bankAccountRepository = mock(BankAccountRepository.class);
+        userService = new UserService(userRepository, bankAccountRepository);
     }
 
     @Test
