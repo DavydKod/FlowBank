@@ -7,23 +7,26 @@ import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
-    private UserService userService;
+    @Mock
     private UserRepository userRepository;
+
+    @Mock
     private BankAccountRepository bankAccountRepository;
 
-    @BeforeEach
-    void setUp(){
-        userRepository = mock(UserRepository.class);
-        bankAccountRepository = mock(BankAccountRepository.class);
-        userService = new UserService(userRepository, bankAccountRepository);
-    }
+    @InjectMocks
+    private UserService userService;
 
     @Test
     void shouldGetUserByEmail(){
