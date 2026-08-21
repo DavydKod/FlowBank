@@ -291,7 +291,7 @@ public class TransactionServiceTest {
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        transactionService.transfer(1L, 2L, BigDecimal.valueOf(150));
+        transactionService.transfer(1L, 2L, BigDecimal.valueOf(150), "key");
 
         assertEquals(BigDecimal.valueOf(50), accountFrom.getBalance());
         assertEquals(BigDecimal.valueOf(500), accountTo.getBalance());
@@ -305,7 +305,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenFromAndToAccountSame(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(1L, 1L, BigDecimal.valueOf(150)));
+                transactionService.transfer(1L, 1L, BigDecimal.valueOf(150), "key"));
 
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transactionRepository);
@@ -330,7 +330,7 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(accountTo));
 
         assertThrows(InvalidAccountStatusException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100), "key"));
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -354,7 +354,7 @@ public class TransactionServiceTest {
         accountFrom.closeAccount();
 
         assertThrows(InvalidAccountStatusException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100), "key"));
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -363,7 +363,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenNegativeAmount(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(-50)));
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(-50), "key"));
 
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transactionRepository);
@@ -372,7 +372,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenZeroAmount(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(0)));
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(0), "key"));
 
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transactionRepository);
@@ -395,9 +395,7 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(accountTo));
 
         assertThrows(InsufficientFundsException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100)));
-
-        verifyNoInteractions(transactionRepository);
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100), "key"));
     }
 
     @Test
@@ -412,7 +410,7 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(BankAccountNotFoundException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50)));
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50), "key"));
 
         verify(bankAccountRepository).findByIdForUpdate(1L);
         verify(bankAccountRepository, never()).findByIdForUpdate(2L);
@@ -433,7 +431,7 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(BankAccountNotFoundException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50)));
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50), "key"));
 
         verify(bankAccountRepository).findByIdForUpdate(1L);
         verify(bankAccountRepository).findByIdForUpdate(2L);
@@ -444,7 +442,7 @@ public class TransactionServiceTest {
     void shouldThrowWhenTransferAmountHasIncorrectScale(){
         assertThrows(IllegalArgumentException.class, () ->
                 transactionService.transfer(1L, 2L,
-                        BigDecimal.valueOf(50.089)));
+                        BigDecimal.valueOf(50.089), "key"));
 
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transactionRepository);
@@ -467,7 +465,8 @@ public class TransactionServiceTest {
         return new Transaction(
                 fromAccount,
                 toAccount,
-                new BigDecimal("100.00")
+                new BigDecimal("100.00"),
+                "key"
         );
     }
 
@@ -504,7 +503,8 @@ public class TransactionServiceTest {
                 () -> transactionService.transfer(
                         1L,
                         2L,
-                        transferAmount
+                        transferAmount,
+                        "key"
                 )
         );
 

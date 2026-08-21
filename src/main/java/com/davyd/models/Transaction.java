@@ -27,20 +27,20 @@ public class Transaction {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "idempotency_key", nullable = false, unique = true, length = 100)
+    private String idempotencyKey;
+
 
     protected Transaction() {
     }
 
-    public Transaction(
-            BankAccount fromAccount,
-            BankAccount toAccount,
-            BigDecimal amount
-    ) {
+    public Transaction(BankAccount fromAccount, BankAccount toAccount, BigDecimal amount, String idempotencyKey) {
         Validation.validateNotNull(fromAccount, "Bank account");
         Validation.validateNotNull(toAccount, "Bank account");
+        Validation.validateNotBlank(idempotencyKey, "Idempotency key");
         amount = Validation.validateMoney(amount);
 
-        if (fromAccount == toAccount){
+        if (fromAccount == toAccount) {
             throw new IllegalArgumentException("Bank accounts must be different for one transaction");
         }
 
@@ -48,6 +48,7 @@ public class Transaction {
         this.toAccount = toAccount;
         this.amount = amount;
         this.createdAt = LocalDateTime.now();
+        this.idempotencyKey = idempotencyKey;
     }
 
     public Long getId() {
@@ -68,5 +69,9 @@ public class Transaction {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
     }
 }

@@ -4,6 +4,7 @@ import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.dto.response.TransactionResponse;
 import com.davyd.exception.BankAccountNotFoundException;
+import com.davyd.exception.IdempotencyKeyConflictException;
 import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.TransactionNotFoundException;
 import com.davyd.mapper.TransactionMapper;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TransactionService {
@@ -82,12 +84,20 @@ public class TransactionService {
     public TransactionResponse transfer(
             long fromAccountId,
             long toAccountId,
-            BigDecimal amount
+            BigDecimal amount,
+            String idempotencyKey
     ) {
         amount = Validation.validateMoney(amount);
+        idempotencyKey = Validation.validateNotBlank(idempotencyKey, "Idempotency key");
 
         if (fromAccountId == toAccountId){
             throw new IllegalArgumentException("Bank accounts cannot be the same");
+        }
+
+        Optional<Transaction> existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (existingTransactionWithKey.isPresent()){
+            return handleExisting(existingTransactionWithKey.get(), fromAccountId, toAccountId, amount);
         }
 
         //to avoid deadlocks
@@ -113,6 +123,12 @@ public class TransactionService {
             throw new InvalidAccountStatusException("Status of account must be active to provide transaction");
         }
 
+        existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (existingTransactionWithKey.isPresent()){
+            return handleExisting(existingTransactionWithKey.get(), fromAccountId, toAccountId, amount);
+        }
+
         transferLimitService.validateDailyTransferLimit(fromAccount, amount);
 
         fromAccount.withdraw(amount);
@@ -121,7 +137,8 @@ public class TransactionService {
         Transaction transaction = new Transaction(
                 fromAccount,
                 toAccount,
-                amount
+                amount,
+                idempotencyKey
         );
 
         return TransactionMapper
@@ -139,5 +156,19 @@ public class TransactionService {
             case AMOUNT_DESC -> Sort.by(Sort.Direction.DESC, "amount");
             case AMOUNT_ASC -> Sort.by(Sort.Direction.ASC, "amount");
         };
+    }
+
+    private boolean matchesRequest(Transaction transaction, Long fromId, Long toId, BigDecimal amount){
+        return  transaction.getFromAccount().getId() == fromId &&
+                transaction.getToAccount().getId() == toId &&
+                transaction.getAmount().compareTo(amount) == 0;
+    }
+
+    private TransactionResponse handleExisting(Transaction transaction, Long fromAccountId, Long toAccountId, BigDecimal amount){
+        if (!matchesRequest(transaction, fromAccountId, toAccountId, amount)){
+            throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
+        }
+
+        return TransactionMapper.toResponse(transaction);
     }
 }

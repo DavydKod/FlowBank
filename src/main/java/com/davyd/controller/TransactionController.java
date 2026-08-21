@@ -50,14 +50,16 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getTransactionsByAccount(accountId, direction, sortingMethod));
     }
 
-    @PostMapping
+    @PostMapping("/transfer")
     public ResponseEntity<TransactionResponse> createTransaction(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestBody @Valid CreateTransactionRequest request
     ) {
         TransactionResponse transactionResponse = transactionService.transfer(
                 request.fromAccountId(),
                 request.toAccountId(),
-                request.amount()
+                request.amount(),
+                idempotencyKey
         );
 
         return ResponseEntity
