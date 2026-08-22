@@ -1,6 +1,7 @@
 package com.davyd.service;
 
 import com.davyd.dto.response.UserResponse;
+import com.davyd.exception.EmailAlreadyExistsException;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
@@ -94,7 +95,7 @@ public class UserServiceTest {
         when(userRepository.existsByEmail("davyd@gmail.com"))
                 .thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () -> userService.createUser(user.getName(), user.getEmail()));
+        assertThrows(EmailAlreadyExistsException.class, () -> userService.createUser(user.getName(), user.getEmail()));
     }
 
 }
