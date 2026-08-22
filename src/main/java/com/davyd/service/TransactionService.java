@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -90,6 +91,10 @@ public class TransactionService {
         amount = Validation.validateMoney(amount);
         idempotencyKey = Validation.validateNotBlank(idempotencyKey, "Idempotency key");
 
+        if (idempotencyKey.length() > 100){
+            throw new IllegalArgumentException("Idempotency key cannot exceed 100 characters");
+        }
+
         if (fromAccountId == toAccountId){
             throw new IllegalArgumentException("Bank accounts cannot be the same");
         }
@@ -159,8 +164,8 @@ public class TransactionService {
     }
 
     private boolean matchesRequest(Transaction transaction, Long fromId, Long toId, BigDecimal amount){
-        return  transaction.getFromAccount().getId() == fromId &&
-                transaction.getToAccount().getId() == toId &&
+        return  Objects.equals(transaction.getFromAccount().getId(), fromId) &&
+                Objects.equals(transaction.getToAccount().getId(), toId) &&
                 transaction.getAmount().compareTo(amount) == 0;
     }
 

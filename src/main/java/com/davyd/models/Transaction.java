@@ -40,6 +40,10 @@ public class Transaction {
         Validation.validateNotBlank(idempotencyKey, "Idempotency key");
         amount = Validation.validateMoney(amount);
 
+        if (idempotencyKey.length() > 100){
+            throw new IllegalArgumentException("Idempotency key cannot exceed 100 characters");
+        }
+
         if (fromAccount == toAccount) {
             throw new IllegalArgumentException("Bank accounts must be different for one transaction");
         }

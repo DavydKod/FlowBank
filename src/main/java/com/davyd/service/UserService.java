@@ -54,9 +54,7 @@ public class UserService {
 
     public UserResponse createUser(String name, String email) {
         if (userRepository.existsByEmail(email)) {
-            throw new IllegalStateException(
-                    "User with email " + email + " already exists"
-            );
+            throw new EmailAlreadyExistsException(email);
         }
 
         try {
