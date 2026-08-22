@@ -92,6 +92,48 @@ public class GlobalExceptionHandler {
                 .body(createErrorResponse(status, exception));
     }
 
+    @ExceptionHandler(UserDeletionNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleUserDeletion(
+            UserDeletionNotAllowedException exception
+    ){
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
+    @ExceptionHandler(IdempotencyKeyConflictException.class)
+    public  ResponseEntity<ErrorResponse> handleIdempotencyKeyConflict(
+            IdempotencyKeyConflictException exception
+    ){
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyExists(EmailAlreadyExistsException exception){
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
+    @ExceptionHandler(DailyTransferLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleExceedingDailyTransferLimit(
+            DailyTransferLimitExceededException exception
+    ){
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
     private ErrorResponse createErrorResponse(HttpStatus status, RuntimeException exception){
         return new ErrorResponse(status.value(), status.getReasonPhrase(), exception.getMessage(), LocalDateTime.now());
     }
