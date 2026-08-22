@@ -691,4 +691,21 @@ public class TransactionServiceTest {
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
     }
+
+    @Test
+    void shouldThrowWhenIdempotencyKeyExceedsMaxCharacters(){
+        StringBuilder keyBuilder = new StringBuilder("");
+
+        keyBuilder.append("keys".repeat(26));
+
+        String exceededKey = keyBuilder.toString();
+
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.transfer(2L, 1L,
+                        BigDecimal.valueOf(100), exceededKey));
+
+        verifyNoInteractions(transactionRepository);
+        verifyNoInteractions(bankAccountRepository);
+        verifyNoInteractions(transferLimitService);
+    }
 }

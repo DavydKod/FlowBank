@@ -7,7 +7,9 @@ import com.davyd.dto.response.TransactionResponse;
 import com.davyd.models.Transaction;
 import com.davyd.service.TransactionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -52,7 +54,10 @@ public class TransactionController {
 
     @PostMapping("/transfer")
     public ResponseEntity<TransactionResponse> createTransaction(
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("Idempotency-Key")
+            @NotBlank(message = "Idempotency key cannot be blank")
+            @Size(max = 100, message = "Idempotency key cannot exceed 100 characters")
+            String idempotencyKey,
             @RequestBody @Valid CreateTransactionRequest request
     ) {
         TransactionResponse transactionResponse = transactionService.transfer(
