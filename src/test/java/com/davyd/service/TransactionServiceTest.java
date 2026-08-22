@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -525,6 +526,167 @@ public class TransactionServiceTest {
                         accountFrom,
                         transferAmount
                 );
+
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldThrowWhenIdempotencyKeyNull(){
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.transfer(2L, 1L, BigDecimal.valueOf(100), null));
+
+        verifyNoInteractions(transactionRepository);
+        verifyNoInteractions(bankAccountRepository);
+        verifyNoInteractions(transferLimitService);
+    }
+
+    @Test
+    void shouldThrowWhenIdempotencyKeyBlank(){
+        assertThrows(IllegalArgumentException.class, () ->
+                transactionService.transfer(2L, 1L, BigDecimal.valueOf(100), "    "));
+
+        verifyNoInteractions(transactionRepository);
+        verifyNoInteractions(bankAccountRepository);
+        verifyNoInteractions(transferLimitService);
+    }
+
+    @Test
+    void shouldThrowWhenIdenticalIdempotencyKeysButDifferentAmounts(){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        ReflectionTestUtils.setField(accountFrom, "id", 1L);
+        ReflectionTestUtils.setField(accountTo, "id", 2L);
+
+        accountFrom.deposit(BigDecimal.valueOf(900));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        BigDecimal transferAmount = BigDecimal.valueOf(150);
+
+        Transaction transaction = new Transaction(accountFrom, accountTo, BigDecimal.valueOf(50), "key");
+
+        when(transactionRepository.findByIdempotencyKey("key"))
+                .thenReturn(Optional.of(transaction));
+
+        assertThrows(IdempotencyKeyConflictException.class, () ->
+                transactionService.transfer(1L, 2L, transferAmount, "key"));
+
+        verifyNoInteractions(transferLimitService);
+        verifyNoInteractions(bankAccountRepository);
+
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldThrowWhenIdenticalIdempotencyKeysButDifferentFromIds(){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        User anotherUserFrom = new User("Davyd", "dav@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        BankAccount anotherAccountFrom = new BankAccount(anotherUserFrom);
+
+        ReflectionTestUtils.setField(accountFrom, "id", 1L);
+        ReflectionTestUtils.setField(accountTo, "id", 2L);
+        ReflectionTestUtils.setField(anotherAccountFrom, "id", 3L);
+
+        accountFrom.deposit(BigDecimal.valueOf(900));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        BigDecimal transferAmount = BigDecimal.valueOf(150);
+
+        Transaction transaction = new Transaction(anotherAccountFrom, accountTo, BigDecimal.valueOf(50), "key");
+
+        when(transactionRepository.findByIdempotencyKey("key"))
+                .thenReturn(Optional.of(transaction));
+
+        assertThrows(IdempotencyKeyConflictException.class, () ->
+                transactionService.transfer(1L, 2L, transferAmount, "key"));
+
+        verifyNoInteractions(transferLimitService);
+        verifyNoInteractions(bankAccountRepository);
+
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldThrowWhenIdenticalIdempotencyKeysButDifferentToIds(){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        User anotherUserTo = new User("Davyd", "dav@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        BankAccount anotherAccountTo = new BankAccount(anotherUserTo);
+
+        ReflectionTestUtils.setField(accountFrom, "id", 1L);
+        ReflectionTestUtils.setField(accountTo, "id", 2L);
+        ReflectionTestUtils.setField(anotherAccountTo, "id", 3L);
+
+        accountFrom.deposit(BigDecimal.valueOf(900));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        BigDecimal transferAmount = BigDecimal.valueOf(150);
+
+        Transaction transaction = new Transaction(accountFrom, anotherAccountTo, BigDecimal.valueOf(50), "key");
+
+        when(transactionRepository.findByIdempotencyKey("key"))
+                .thenReturn(Optional.of(transaction));
+
+        assertThrows(IdempotencyKeyConflictException.class, () ->
+                transactionService.transfer(1L, 2L, transferAmount, "key"));
+
+        verifyNoInteractions(transferLimitService);
+        verifyNoInteractions(bankAccountRepository);
+
+        verify(transactionRepository, never())
+                .save(any(Transaction.class));
+    }
+
+    @Test
+    void shouldReturnPreviousTransactionWhenIdempotencyKeysAndValuesIdentical(){
+        User userFrom = new User("Joel", "joel@gmail.com");
+        User userTo = new User("Adriana", "adri@gmail.com");
+
+        BankAccount accountFrom = new BankAccount(userFrom);
+        BankAccount accountTo = new BankAccount(userTo);
+
+        ReflectionTestUtils.setField(accountFrom, "id", 1L);
+        ReflectionTestUtils.setField(accountTo, "id", 2L);
+
+        accountFrom.deposit(BigDecimal.valueOf(900));
+        accountTo.deposit(BigDecimal.valueOf(350));
+
+        BigDecimal transferAmount = BigDecimal.valueOf(150);
+
+        Transaction transaction = new Transaction(accountFrom, accountTo, BigDecimal.valueOf(150), "key");
+
+        ReflectionTestUtils.setField(transaction, "id", 1L);
+
+        when(transactionRepository.findByIdempotencyKey("key"))
+                .thenReturn(Optional.of(transaction));
+
+        TransactionResponse transactionResponse =
+                transactionService.transfer(1L, 2L, transferAmount, "key");
+
+        assertEquals(1L, transactionResponse.id());
+        assertEquals(1L, transactionResponse.fromAccountId());
+        assertEquals(2L, transactionResponse.toAccountId());
+        assertEquals(BigDecimal.valueOf(150), transactionResponse.amount());
+
+        verifyNoInteractions(transferLimitService);
+        verifyNoInteractions(bankAccountRepository);
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
