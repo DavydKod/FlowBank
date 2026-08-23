@@ -1,6 +1,8 @@
 package com.davyd.repository;
 
 import com.davyd.models.Transaction;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,9 +14,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    List<Transaction> findByFromAccount_Id(Long accountId, Sort sort);
-    List<Transaction> findByToAccount_Id(Long accountId, Sort sort);
-    List<Transaction> findByFromAccount_IdOrToAccount_Id(Long fromAccountId, Long toAccountId, Sort sort);
+    Page<Transaction> findByFromAccount_Id(Long accountId, Pageable pageable);
+    Page<Transaction> findByToAccount_Id(Long accountId, Pageable pageable);
+    Page<Transaction> findByFromAccount_IdOrToAccount_Id(Long fromAccountId, Long toAccountId, Pageable pageable);
 
     @Query("""
     SELECT COALESCE(SUM(t.amount), 0)

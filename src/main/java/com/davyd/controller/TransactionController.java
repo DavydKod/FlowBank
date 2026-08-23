@@ -4,12 +4,14 @@ import com.davyd.dto.request.CreateTransactionRequest;
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.dto.response.TransactionResponse;
-import com.davyd.models.Transaction;
 import com.davyd.service.TransactionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,9 +29,9 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TransactionResponse>> getAllTransactions() {
+    public ResponseEntity<Page<TransactionResponse>> getAllTransactions(@PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(
-                transactionService.getAllTransactions()
+                transactionService.getAllTransactions(pageable)
         );
     }
 
@@ -43,13 +45,14 @@ public class TransactionController {
     }
 
     @GetMapping("/by-account/{accountId}")
-    public ResponseEntity<List<TransactionResponse>> getTransactionsByAccount(
+    public ResponseEntity<Page<TransactionResponse>> getTransactionsByAccount(
             @PathVariable @Positive long accountId,
             @RequestParam(required = false) TransactionDirection direction,
-            @RequestParam(required = false) TransactionSortingMethod sortingMethod
+            @RequestParam(required = false) TransactionSortingMethod sortingMethod,
+            @PageableDefault(size = 20) Pageable pageable
             ) {
 
-        return ResponseEntity.ok(transactionService.getTransactionsByAccount(accountId, direction, sortingMethod));
+        return ResponseEntity.ok(transactionService.getTransactionsByAccount(accountId, direction, sortingMethod, pageable));
     }
 
     @PostMapping("/transfer")
