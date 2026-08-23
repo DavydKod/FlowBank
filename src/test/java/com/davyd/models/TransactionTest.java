@@ -119,4 +119,16 @@ class TransactionTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(20), "  "));
     }
+
+    @Test
+    void shouldThrowWhenExceedingBigDecimalLimits(){
+        User user1 = new User("Davyd", "davyd@gmail.com");
+        User user2 = new User("Alex", "alex@gmail.com");
+
+        BankAccount fromAccount = new BankAccount(user1);
+        BankAccount toAccount = new BankAccount(user2);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(100000000000000000L), "key"));
+    }
 }
