@@ -15,6 +15,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -115,43 +119,54 @@ class BankAccountServiceTest {
 
         List<BankAccount> accounts = List.of(account1, account2);
 
+        Pageable pageable = PageRequest.of(0, 20);
+
+        Page<BankAccount> accountsPage = new PageImpl<>(
+                accounts,
+                pageable,
+                accounts.size()
+        );
+
         when(userRepository.existsById(1L))
                 .thenReturn(true);
 
-        when(bankAccountRepository.findByOwner_Id(1L))
-                .thenReturn(accounts);
+        when(bankAccountRepository.findByOwner_Id(1L, pageable))
+                .thenReturn(accountsPage);
 
-        List<BankAccountResponse> result =
-                bankAccountService.getAccountsByOwner(1L);
+        Page<BankAccountResponse> result =
+                bankAccountService.getAccountsByOwner(1L, pageable);
 
-        assertEquals(2, result.size());
+        List<BankAccountResponse> content = result.getContent();
 
-        assertEquals(1L, result.get(0).ownerId());
-        assertEquals(account1.getBalance(), result.get(0).balance());
-        assertEquals(account1.getStatus(), result.get(0).status());
+        assertEquals(2, result.getTotalElements());
 
-        assertEquals(1L, result.get(1).ownerId());
-        assertEquals(account2.getBalance(), result.get(1).balance());
-        assertEquals(account2.getStatus(), result.get(1).status());
+        assertEquals(1L, content.get(0).ownerId());
+        assertEquals(account1.getBalance(), content.get(0).balance());
+        assertEquals(account1.getStatus(), content.get(0).status());
+
+        assertEquals(1L, content.get(1).ownerId());
+        assertEquals(account2.getBalance(), content.get(1).balance());
+        assertEquals(account2.getStatus(), content.get(1).status());
 
         verify(userRepository).existsById(1L);
-        verify(bankAccountRepository).findByOwner_Id(1L);
+        verify(bankAccountRepository).findByOwner_Id(1L, pageable);
     }
 
     @Test
     void shouldThrowWhenGettingAccountsForNonExistingOwner() {
+        Pageable pageable = PageRequest.of(0, 20);
+
         when(userRepository.existsById(1L))
                 .thenReturn(false);
 
         assertThrows(
                 UserNotFoundException.class,
-                () -> bankAccountService.getAccountsByOwner(1L)
+                () -> bankAccountService.getAccountsByOwner(1L, pageable)
         );
 
         verify(userRepository).existsById(1L);
 
-        verify(bankAccountRepository, never())
-                .findByOwner_Id(anyLong());
+        verifyNoInteractions(bankAccountRepository);
     }
 
     @Test

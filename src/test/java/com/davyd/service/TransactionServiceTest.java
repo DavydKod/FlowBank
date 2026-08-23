@@ -16,7 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -73,26 +73,29 @@ public class TransactionServiceTest {
 
     @Test
     void shouldGetAllTransactions() {
+        Pageable pageable = PageRequest.of(0, 20);
+
         Transaction transaction1 = createTransaction();
         Transaction transaction2 = createTransaction();
 
-        List<Transaction> transactions =
-                List.of(transaction1, transaction2);
+        Page<Transaction> transactions =
+                new PageImpl<>(List.of(transaction1, transaction2),
+                        pageable,
+                        2);
 
-        when(transactionRepository.findAll())
+        when(transactionRepository.findAll(pageable))
                 .thenReturn(transactions);
 
-        List<TransactionResponse> expected = transactions.stream()
-                .map(TransactionMapper::toResponse)
-                .toList();
+        Page<TransactionResponse> expected = transactions
+                .map(TransactionMapper::toResponse);
 
-        List<TransactionResponse> result =
-                transactionService.getAllTransactions();
+        Page<TransactionResponse> result =
+                transactionService.getAllTransactions(pageable);
 
         assertEquals(expected, result);
-        assertEquals(2, result.size());
+        assertEquals(2, result.getTotalElements());
 
-        verify(transactionRepository).findAll();
+        verify(transactionRepository).findAll(pageable);
     }
 
     @Test
@@ -100,28 +103,36 @@ public class TransactionServiceTest {
         long accountId = 1L;
 
         Transaction transaction = createTransaction();
-        List<Transaction> transactions = List.of(transaction);
 
         Sort sort = Sort.by(
                 Sort.Direction.DESC,
                 "createdAt"
         );
 
+        Pageable pageable = PageRequest.of(0, 20, sort);
+
+        Page<Transaction> transactions = new PageImpl<>(
+                List.of(transaction),
+                pageable,
+                1
+
+        );
+
         when(bankAccountRepository.existsById(accountId))
                 .thenReturn(true);
 
-        when(transactionRepository.findByFromAccount_Id(accountId, sort))
+        when(transactionRepository.findByFromAccount_Id(accountId, pageable))
                 .thenReturn(transactions);
 
-        List<TransactionResponse> expected = transactions.stream()
-                .map(TransactionMapper::toResponse)
-                .toList();
+        Page<TransactionResponse> expected = transactions
+                .map(TransactionMapper::toResponse);
 
-        List<TransactionResponse> result =
+        Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
                         accountId,
                         TransactionDirection.FROM,
-                        TransactionSortingMethod.CREATED_AT_DESC
+                        TransactionSortingMethod.CREATED_AT_DESC,
+                        pageable
                 );
 
         assertEquals(expected, result);
@@ -129,7 +140,7 @@ public class TransactionServiceTest {
         verify(bankAccountRepository).existsById(accountId);
 
         verify(transactionRepository)
-                .findByFromAccount_Id(accountId, sort);
+                .findByFromAccount_Id(accountId, pageable);
     }
 
     @Test
@@ -137,28 +148,36 @@ public class TransactionServiceTest {
         long accountId = 1L;
 
         Transaction transaction = createTransaction();
-        List<Transaction> transactions = List.of(transaction);
 
         Sort sort = Sort.by(
                 Sort.Direction.ASC,
                 "amount"
         );
 
+        Pageable pageable = PageRequest.of(0, 20, sort);
+
+        Page<Transaction> transactions = new PageImpl<>(
+                List.of(transaction),
+                pageable,
+                1
+
+        );
+
         when(bankAccountRepository.existsById(accountId))
                 .thenReturn(true);
 
-        when(transactionRepository.findByToAccount_Id(accountId, sort))
+        when(transactionRepository.findByToAccount_Id(accountId, pageable))
                 .thenReturn(transactions);
 
-        List<TransactionResponse> expected = transactions.stream()
-                .map(TransactionMapper::toResponse)
-                .toList();
+        Page<TransactionResponse> expected = transactions
+                .map(TransactionMapper::toResponse);
 
-        List<TransactionResponse> result =
+        Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
                         accountId,
                         TransactionDirection.TO,
-                        TransactionSortingMethod.AMOUNT_ASC
+                        TransactionSortingMethod.AMOUNT_ASC,
+                        pageable
                 );
 
         assertEquals(expected, result);
@@ -166,7 +185,7 @@ public class TransactionServiceTest {
         verify(bankAccountRepository).existsById(accountId);
 
         verify(transactionRepository)
-                .findByToAccount_Id(accountId, sort);
+                .findByToAccount_Id(accountId, pageable);
     }
 
     @Test
@@ -174,11 +193,19 @@ public class TransactionServiceTest {
         long accountId = 1L;
 
         Transaction transaction = createTransaction();
-        List<Transaction> transactions = List.of(transaction);
 
         Sort sort = Sort.by(
                 Sort.Direction.DESC,
                 "createdAt"
+        );
+
+        Pageable pageable = PageRequest.of(0, 20, sort);
+
+        Page<Transaction> transactions = new PageImpl<>(
+                List.of(transaction),
+                pageable,
+                1
+
         );
 
         when(bankAccountRepository.existsById(accountId))
@@ -187,18 +214,18 @@ public class TransactionServiceTest {
         when(transactionRepository.findByFromAccount_IdOrToAccount_Id(
                 accountId,
                 accountId,
-                sort
+                pageable
         )).thenReturn(transactions);
 
-        List<TransactionResponse> expected = transactions.stream()
-                .map(TransactionMapper::toResponse)
-                .toList();
+        Page<TransactionResponse> expected = transactions
+                .map(TransactionMapper::toResponse);
 
-        List<TransactionResponse> result =
+        Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
                         accountId,
                         null,
-                        null
+                        null,
+                        pageable
                 );
 
         assertEquals(expected, result);
@@ -209,13 +236,15 @@ public class TransactionServiceTest {
                 .findByFromAccount_IdOrToAccount_Id(
                         accountId,
                         accountId,
-                        sort
+                        pageable
                 );
     }
 
     @Test
     void shouldThrowWhenAccountDoesNotExist() {
         long accountId = 1L;
+
+        Pageable pageable = PageRequest.of(0, 20);
 
         when(bankAccountRepository.existsById(accountId))
                 .thenReturn(false);
@@ -225,21 +254,22 @@ public class TransactionServiceTest {
                 () -> transactionService.getTransactionsByAccount(
                         accountId,
                         TransactionDirection.FROM,
-                        TransactionSortingMethod.CREATED_AT_DESC
+                        TransactionSortingMethod.CREATED_AT_DESC,
+                        pageable
                 )
         );
 
         verify(transactionRepository, never())
-                .findByFromAccount_Id(anyLong(), any(Sort.class));
+                .findByFromAccount_Id(anyLong(), any(Pageable.class));
 
         verify(transactionRepository, never())
-                .findByToAccount_Id(anyLong(), any(Sort.class));
+                .findByToAccount_Id(anyLong(), any(Pageable.class));
 
         verify(transactionRepository, never())
                 .findByFromAccount_IdOrToAccount_Id(
                         anyLong(),
                         anyLong(),
-                        any(Sort.class)
+                        any(Pageable.class)
                 );
     }
 
@@ -252,24 +282,28 @@ public class TransactionServiceTest {
                 "createdAt"
         );
 
+        Pageable inputPageable = PageRequest.of(0, 20);
+        Pageable expectedPageable = PageRequest.of(0, 20, expectedSort);
+
         when(bankAccountRepository.existsById(accountId))
                 .thenReturn(true);
 
         when(transactionRepository.findByFromAccount_Id(
                 accountId,
-                expectedSort
-        )).thenReturn(List.of());
+                expectedPageable
+        )).thenReturn(Page.empty(expectedPageable));
 
         transactionService.getTransactionsByAccount(
                 accountId,
                 TransactionDirection.FROM,
-                null
+                null,
+                inputPageable
         );
 
         verify(transactionRepository)
                 .findByFromAccount_Id(
                         accountId,
-                        expectedSort
+                        expectedPageable
                 );
     }
 
