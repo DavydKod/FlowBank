@@ -5,10 +5,12 @@ import com.davyd.dto.request.CreateBankAccountRequest;
 import com.davyd.service.BankAccountService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import org.springframework.data.domain.Page;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -22,8 +24,8 @@ public class BankAccountController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BankAccountResponse>> getAllAccounts() {
-        return ResponseEntity.ok(bankAccountService.getAllAccounts());
+    public ResponseEntity<Page<BankAccountResponse>> getAllAccounts(Pageable pageable) {
+        return ResponseEntity.ok(bankAccountService.getAllAccounts(pageable));
     }
 
     @GetMapping("/{id}")
@@ -34,11 +36,12 @@ public class BankAccountController {
     }
 
     @GetMapping("/by-owner/{ownerId}")
-    public ResponseEntity<List<BankAccountResponse>> getAccountsByOwner(
-            @PathVariable @Positive long ownerId
+    public ResponseEntity<Page<BankAccountResponse>> getAccountsByOwner(
+            @PathVariable @Positive long ownerId,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(
-                bankAccountService.getAccountsByOwner(ownerId)
+                bankAccountService.getAccountsByOwner(ownerId, pageable)
         );
     }
 
