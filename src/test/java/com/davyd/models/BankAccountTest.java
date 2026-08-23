@@ -262,4 +262,16 @@ class BankAccountTest {
         assertThrows(IllegalArgumentException.class, () ->
                 account.withdraw(BigDecimal.valueOf(3.55875)));
     }
+
+    @Test
+    void shouldThrowWhenExceedingWithdrawBigDecimalLimits(){
+        assertThrows(IllegalArgumentException.class, () ->
+                account.withdraw(BigDecimal.valueOf(100000000000000000L)));
+    }
+
+    @Test
+    void shouldThrowWhenExceedingDepositBigDecimalLimits(){
+        assertThrows(IllegalArgumentException.class, () ->
+                account.deposit(BigDecimal.valueOf(100000000000000000L)));
+    }
 }

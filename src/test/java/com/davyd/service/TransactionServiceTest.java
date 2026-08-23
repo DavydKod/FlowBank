@@ -708,4 +708,9 @@ public class TransactionServiceTest {
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transferLimitService);
     }
+
+    @Test
+    void shouldThrowWhenExceedingBigDecimalLimitsInTransfer(){
+        assertThrows(IllegalArgumentException.class, () -> transactionService.transfer(1L, 2L, BigDecimal.valueOf(100000000000000000L), "key"));
+    }
 }
