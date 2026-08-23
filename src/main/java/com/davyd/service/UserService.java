@@ -9,9 +9,11 @@ import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class UserService {
@@ -47,9 +49,9 @@ public class UserService {
         return UserMapper.toResponse(user);
     }
 
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll()
-                .stream().map(UserMapper::toResponse).toList();
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(UserMapper::toResponse);
     }
 
     public UserResponse createUser(String name, String email) {

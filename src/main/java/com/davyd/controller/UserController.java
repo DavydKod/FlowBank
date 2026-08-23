@@ -7,10 +7,12 @@ import com.davyd.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Positive;
+import org.springframework.data.domain.Page;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -23,8 +25,8 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> getAllUser(){
-        List<UserResponse> userResponses = userService.getAllUsers();
+    public ResponseEntity<Page<UserResponse>> getAllUser(@PageableDefault(size = 20) Pageable pageable){
+        Page<UserResponse> userResponses = userService.getAllUsers(pageable);
         return ResponseEntity.ok(userResponses);
     }
 
