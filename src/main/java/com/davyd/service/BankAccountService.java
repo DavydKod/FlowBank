@@ -9,6 +9,8 @@ import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -45,19 +47,19 @@ public class BankAccountService {
                 .orElseThrow(() -> new BankAccountNotFoundException(id));
     }
 
-    public List<BankAccountResponse> getAllAccounts() {
+    public Page<BankAccountResponse> getAllAccounts(Pageable pageable) {
 
-        return bankAccountRepository.findAll()
-                .stream().map(BankAccountMapper::toResponse).toList();
+        return bankAccountRepository.findAll(pageable)
+                .map(BankAccountMapper::toResponse);
     }
 
-    public List<BankAccountResponse> getAccountsByOwner(long ownerId) {
+    public Page<BankAccountResponse> getAccountsByOwner(long ownerId, Pageable pageable) {
         if (!userRepository.existsById(ownerId)) {
             throw new UserNotFoundException(ownerId);
         }
 
-        return bankAccountRepository.findByOwner_Id(ownerId).stream()
-                .map(BankAccountMapper::toResponse).toList();
+        return bankAccountRepository.findByOwner_Id(ownerId, pageable)
+                .map(BankAccountMapper::toResponse);
     }
 
     @Transactional

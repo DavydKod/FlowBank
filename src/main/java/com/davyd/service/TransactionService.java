@@ -15,6 +15,9 @@ import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import com.davyd.util.Validation;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -46,33 +49,36 @@ public class TransactionService {
         return TransactionMapper.toResponse(transaction);
     }
 
-    public List<TransactionResponse> getAllTransactions() {
-        return transactionRepository.findAll()
-                .stream().map(TransactionMapper::toResponse).toList();
+    public Page<TransactionResponse> getAllTransactions(Pageable pageable) {
+        return transactionRepository.findAll(pageable)
+                .map(TransactionMapper::toResponse);
     }
 
-    public List<TransactionResponse> getTransactionsByAccount(long accountId, TransactionDirection direction,
-                                                      TransactionSortingMethod sortingMethod) {
+    public Page<TransactionResponse> getTransactionsByAccount(long accountId, TransactionDirection direction,
+                                                      TransactionSortingMethod sortingMethod, Pageable pageable) {
         validateAccountExists(accountId);
 
         Sort sort = getSortMethod(sortingMethod);
 
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(),
+                pageable.getPageSize(), sort);
+
         if (direction == TransactionDirection.FROM) {
-            return transactionRepository.findByFromAccount_Id(accountId, sort)
-                    .stream().map(TransactionMapper::toResponse).toList();
+            return transactionRepository.findByFromAccount_Id(accountId, sortedPageable)
+                    .map(TransactionMapper::toResponse);
         }
 
         if (direction == TransactionDirection.TO) {
-            return transactionRepository.findByToAccount_Id(accountId, sort)
-                    .stream().map(TransactionMapper::toResponse).toList();
+            return transactionRepository.findByToAccount_Id(accountId, sortedPageable)
+                    .map(TransactionMapper::toResponse);
         }
 
         return transactionRepository
                 .findByFromAccount_IdOrToAccount_Id(
                         accountId,
                         accountId,
-                        sort
-                ).stream().map(TransactionMapper::toResponse).toList();
+                        sortedPageable
+                ).map(TransactionMapper::toResponse);
     }
 
     private void validateAccountExists(long accountId) {
