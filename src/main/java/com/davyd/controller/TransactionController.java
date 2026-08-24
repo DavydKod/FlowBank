@@ -5,6 +5,7 @@ import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.dto.response.TransactionResponse;
 import com.davyd.service.TransactionService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -18,6 +19,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(
+        name = "Transactions",
+        description = "Money transfers and transaction history"
+)
 @RestController
 @RequestMapping("/transactions")
 public class TransactionController {

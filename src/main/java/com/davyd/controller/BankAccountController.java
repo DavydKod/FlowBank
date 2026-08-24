@@ -3,6 +3,7 @@ package com.davyd.controller;
 import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.request.CreateBankAccountRequest;
 import com.davyd.service.BankAccountService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
 
+@Tag(
+        name = "Bank Accounts",
+        description = "Bank account management"
+)
 @RestController
 @RequestMapping("/accounts")
 public class BankAccountController {

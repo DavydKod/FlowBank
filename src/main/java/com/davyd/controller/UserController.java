@@ -4,6 +4,7 @@ import com.davyd.dto.request.ChangeUserNameRequest;
 import com.davyd.dto.request.CreateUserRequest;
 import com.davyd.dto.response.UserResponse;
 import com.davyd.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Positive;
@@ -13,8 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
-import java.util.List;
 
+@Tag(
+        name = "Users",
+        description = "User management"
+)
 @RestController
 @RequestMapping("/users")
 public class UserController {
