@@ -1,7 +1,9 @@
 package com.davyd.dto.response
 
+import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 
+@Schema(description = "Analytics for a bank account")
 data class AccountAnalytics(
     val accountId: Long,
     val totalSent: BigDecimal,
