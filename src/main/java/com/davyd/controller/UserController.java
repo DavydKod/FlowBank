@@ -130,7 +130,8 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> createUser(
             @RequestBody
-            @Valid CreateUserRequest createUserRequest){
+            @Valid
+            CreateUserRequest createUserRequest){
         UserResponse userResponse = userService.createUser(createUserRequest.name(), createUserRequest.email());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
