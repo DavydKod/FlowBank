@@ -34,10 +34,12 @@ public class Transaction {
     protected Transaction() {
     }
 
-    public Transaction(BankAccount fromAccount, BankAccount toAccount, BigDecimal amount, String idempotencyKey) {
+    public Transaction(BankAccount fromAccount, BankAccount toAccount,
+                       BigDecimal amount, LocalDateTime createdAt, String idempotencyKey) {
         Validation.validateNotNull(fromAccount, "Bank account");
         Validation.validateNotNull(toAccount, "Bank account");
         Validation.validateNotBlank(idempotencyKey, "Idempotency key");
+        Validation.validateNotNull(createdAt, "Creation date");
         amount = Validation.validateMoney(amount);
 
         if (idempotencyKey.length() > 100){
@@ -51,7 +53,7 @@ public class Transaction {
         this.fromAccount = fromAccount;
         this.toAccount = toAccount;
         this.amount = amount;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = createdAt;
         this.idempotencyKey = idempotencyKey;
     }
 

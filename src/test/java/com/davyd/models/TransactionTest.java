@@ -19,20 +19,16 @@ class TransactionTest {
 
         BigDecimal amount = new BigDecimal("150.00");
 
-        LocalDateTime beforeCreation = LocalDateTime.now();
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
 
         Transaction transaction =
-                new Transaction(fromAccount, toAccount, amount, "key");
-
-        LocalDateTime afterCreation = LocalDateTime.now();
+                new Transaction(fromAccount, toAccount, amount,
+                        createdAt, "key");
 
         assertEquals(fromAccount, transaction.getFromAccount());
         assertEquals(toAccount, transaction.getToAccount());
         assertEquals(amount, transaction.getAmount());
-
-        assertNotNull(transaction.getCreatedAt());
-        assertFalse(transaction.getCreatedAt().isBefore(beforeCreation));
-        assertFalse(transaction.getCreatedAt().isAfter(afterCreation));
+        assertEquals(createdAt, transaction.getCreatedAt());
 
         assertNull(transaction.getId());
     }
@@ -45,8 +41,10 @@ class TransactionTest {
 
         BigDecimal amount = new BigDecimal("150.00");
 
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
         assertThrows(IllegalArgumentException.class, () ->
-                new Transaction(null, toAccount, amount, "key"));
+                new Transaction(null, toAccount, amount, createdAt, "key"));
     }
 
     @Test
@@ -57,8 +55,10 @@ class TransactionTest {
 
         BigDecimal amount = new BigDecimal("150.00");
 
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
         assertThrows(IllegalArgumentException.class, () ->
-                new Transaction(fromAccount, null, amount, "key"));
+                new Transaction(fromAccount, null, amount, createdAt, "key"));
     }
 
     @Test
@@ -69,7 +69,10 @@ class TransactionTest {
         BankAccount fromAccount = new BankAccount(user1);
         BankAccount toAccount = new BankAccount(user2);
 
-        assertThrows(IllegalArgumentException.class, () -> new Transaction(fromAccount, toAccount, null, "key"));
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                new Transaction(fromAccount, toAccount, null, createdAt, "key"));
     }
 
     @Test
@@ -80,8 +83,10 @@ class TransactionTest {
         BankAccount fromAccount = new BankAccount(user1);
         BankAccount toAccount = new BankAccount(user2);
 
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
         assertThrows(IllegalArgumentException.class,
-                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(1.2546), "key"));
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(1.2546), createdAt, "key"));
     }
 
     @Test
@@ -92,8 +97,10 @@ class TransactionTest {
         BankAccount fromAccount = new BankAccount(user1);
         BankAccount toAccount = new BankAccount(user2);
 
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
         assertThrows(IllegalArgumentException.class,
-                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(-54), "key"));
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(-54), createdAt,"key"));
     }
 
     @Test
@@ -104,8 +111,10 @@ class TransactionTest {
         BankAccount fromAccount = new BankAccount(user1);
         BankAccount toAccount = new BankAccount(user2);
 
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
         assertThrows(IllegalArgumentException.class,
-                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(20), null));
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(20), createdAt,null));
     }
 
     @Test
@@ -116,8 +125,10 @@ class TransactionTest {
         BankAccount fromAccount = new BankAccount(user1);
         BankAccount toAccount = new BankAccount(user2);
 
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
         assertThrows(IllegalArgumentException.class,
-                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(20), "  "));
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(20),createdAt, "  "));
     }
 
     @Test
@@ -128,7 +139,9 @@ class TransactionTest {
         BankAccount fromAccount = new BankAccount(user1);
         BankAccount toAccount = new BankAccount(user2);
 
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
         assertThrows(IllegalArgumentException.class,
-                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(100000000000000000L), "key"));
+                () -> new Transaction(fromAccount, toAccount, BigDecimal.valueOf(100000000000000000L), createdAt,"key"));
     }
 }
