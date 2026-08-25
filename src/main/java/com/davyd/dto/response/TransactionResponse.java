@@ -15,7 +15,7 @@ public record TransactionResponse(
         Long fromAccountId,
 
         @Schema(description = "Destination bank account the money was deposited to",
-        example = "1")
+        example = "2")
         Long toAccountId,
 
         @Schema(

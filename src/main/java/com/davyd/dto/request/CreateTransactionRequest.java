@@ -17,7 +17,7 @@ public record CreateTransactionRequest(
         long fromAccountId,
 
         @Schema(description = "Destination bank account the money will be deposited to",
-        example = "1")
+        example = "2")
         @Positive
         long toAccountId,
 
