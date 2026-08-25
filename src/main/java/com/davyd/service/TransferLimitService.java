@@ -7,18 +7,21 @@ import com.davyd.util.Validation;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
 public class TransferLimitService {
     private final TransactionRepository transactionRepository;
+    private final Clock clock;
 
-    public TransferLimitService(TransactionRepository transactionRepository){
+    public TransferLimitService(TransactionRepository transactionRepository, Clock clock){
         this.transactionRepository = transactionRepository;
+        this.clock = clock;
     }
 
     private BigDecimal transferredAmountOfDay(BankAccount account){
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        LocalDateTime since = LocalDateTime.now(clock).minusHours(24);
 
         BigDecimal transferredLast24Hours =
                 transactionRepository.getTotalSentSince(
