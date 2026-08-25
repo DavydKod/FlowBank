@@ -22,6 +22,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,15 +33,18 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final BankAccountRepository bankAccountRepository;
     private final TransferLimitService transferLimitService;
+    private final Clock clock;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             BankAccountRepository bankAccountRepository,
-            TransferLimitService transferLimitService
+            TransferLimitService transferLimitService,
+            Clock clock
     ) {
         this.transactionRepository = transactionRepository;
         this.bankAccountRepository = bankAccountRepository;
         this.transferLimitService = transferLimitService;
+        this.clock = clock;
     }
 
     public TransactionResponse getTransactionById(long id) {
@@ -149,6 +154,7 @@ public class TransactionService {
                 fromAccount,
                 toAccount,
                 amount,
+                LocalDateTime.now(clock),
                 idempotencyKey
         );
 
