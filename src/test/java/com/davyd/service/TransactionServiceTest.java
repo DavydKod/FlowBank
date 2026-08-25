@@ -15,11 +15,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,6 +41,11 @@ public class TransactionServiceTest {
 
     @Mock
     private TransferLimitService transferLimitService;
+
+    @Spy
+    private Clock clock = Clock.fixed(
+            Instant.parse("2026-08-25T12:00:00Z"),
+            ZoneOffset.UTC);
 
     @InjectMocks
     private TransactionService transactionService;
@@ -326,10 +336,13 @@ public class TransactionServiceTest {
         when(transactionRepository.save(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        transactionService.transfer(1L, 2L, BigDecimal.valueOf(150), "key");
+        TransactionResponse response =
+                transactionService.transfer(1L, 2L, BigDecimal.valueOf(150), "key");
 
         assertEquals(BigDecimal.valueOf(50), accountFrom.getBalance());
         assertEquals(BigDecimal.valueOf(500), accountTo.getBalance());
+
+        assertEquals(LocalDateTime.now(clock), response.createdAt());
 
         verify(bankAccountRepository).findByIdForUpdate(1L);
         verify(bankAccountRepository).findByIdForUpdate(2L);
@@ -501,6 +514,7 @@ public class TransactionServiceTest {
                 fromAccount,
                 toAccount,
                 new BigDecimal("100.00"),
+                LocalDateTime.now(clock),
                 "key"
         );
     }
@@ -578,7 +592,8 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenIdempotencyKeyBlank(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(2L, 1L, BigDecimal.valueOf(100), "    "));
+                transactionService.transfer(2L, 1L,
+                        BigDecimal.valueOf(100), "    "));
 
         verifyNoInteractions(transactionRepository);
         verifyNoInteractions(bankAccountRepository);
@@ -601,7 +616,8 @@ public class TransactionServiceTest {
 
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
-        Transaction transaction = new Transaction(accountFrom, accountTo, BigDecimal.valueOf(50), "key");
+        Transaction transaction =
+                new Transaction(accountFrom, accountTo, BigDecimal.valueOf(50), LocalDateTime.now(clock), "key");
 
         when(transactionRepository.findByIdempotencyKey("key"))
                 .thenReturn(Optional.of(transaction));
@@ -637,7 +653,9 @@ public class TransactionServiceTest {
 
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
-        Transaction transaction = new Transaction(anotherAccountFrom, accountTo, BigDecimal.valueOf(50), "key");
+        Transaction transaction =
+                new Transaction(anotherAccountFrom, accountTo,
+                        BigDecimal.valueOf(50), LocalDateTime.now(clock), "key");
 
         when(transactionRepository.findByIdempotencyKey("key"))
                 .thenReturn(Optional.of(transaction));
@@ -673,7 +691,9 @@ public class TransactionServiceTest {
 
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
-        Transaction transaction = new Transaction(accountFrom, anotherAccountTo, BigDecimal.valueOf(50), "key");
+        Transaction transaction =
+                new Transaction(accountFrom, anotherAccountTo,
+                        BigDecimal.valueOf(50), LocalDateTime.now(clock), "key");
 
         when(transactionRepository.findByIdempotencyKey("key"))
                 .thenReturn(Optional.of(transaction));
@@ -704,7 +724,9 @@ public class TransactionServiceTest {
 
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
-        Transaction transaction = new Transaction(accountFrom, accountTo, BigDecimal.valueOf(150), "key");
+        Transaction transaction =
+                new Transaction(accountFrom, accountTo,
+                        BigDecimal.valueOf(150), LocalDateTime.now(clock), "key");
 
         ReflectionTestUtils.setField(transaction, "id", 1L);
 

@@ -30,7 +30,7 @@ class TransferLimitServiceTest {
     @Spy
     private Clock clock = Clock.fixed(
             Instant.parse("2026-08-25T12:00:00Z"),
-            ZoneOffset.UTC);;
+            ZoneOffset.UTC);
 
     @InjectMocks
     private TransferLimitService transferLimitService;
