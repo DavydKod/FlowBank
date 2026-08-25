@@ -4,14 +4,19 @@ import com.davyd.exception.DailyTransferLimitExceededException;
 import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.TransactionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -21,6 +26,11 @@ class TransferLimitServiceTest {
 
     @Mock
     private TransactionRepository transactionRepository;
+
+    @Spy
+    private Clock clock = Clock.fixed(
+            Instant.parse("2026-08-25T12:00:00Z"),
+            ZoneOffset.UTC);;
 
     @InjectMocks
     private TransferLimitService transferLimitService;
@@ -112,5 +122,37 @@ class TransferLimitServiceTest {
 
         assertThrows(IllegalArgumentException.class, () ->
                 transferLimitService.validateDailyTransferLimit(account, BigDecimal.valueOf(100000000000000000L)));
+    }
+
+    @Test
+    void shouldCheckTransactionsFromLast24Hours() {
+        User user = new User("Joel", "joel@gmail.com");
+
+        BankAccount account = new BankAccount(user);
+
+        BigDecimal transferAmount = new BigDecimal("150.00");
+
+        LocalDateTime expectedPeriodStart = LocalDateTime.of(
+                2026,
+                8,
+                24,
+                12,
+                0
+        );
+
+        when(transactionRepository.getTotalSentSince(
+                account.getId(),
+                expectedPeriodStart
+        )).thenReturn(BigDecimal.ZERO);
+
+        transferLimitService.validateDailyTransferLimit(
+                account,
+                transferAmount
+        );
+
+        verify(transactionRepository).getTotalSentSince(
+                account.getId(),
+                expectedPeriodStart
+        );
     }
 }
