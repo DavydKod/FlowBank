@@ -8,6 +8,7 @@ import com.davyd.mapper.UserMapper;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 
@@ -60,12 +61,13 @@ public class UserService {
         }
 
         try {
-            return UserMapper.toResponse(userRepository.save(new User(name, email)));
+            return UserMapper.toResponse(userRepository.saveAndFlush(new User(name, email)));
         } catch (DataIntegrityViolationException e){
             throw new EmailAlreadyExistsException(email);
         }
     }
 
+    @Transactional
     public UserResponse changeUserName(long id, String newName) {
         User user = getUserEntity(id);
 
@@ -80,7 +82,13 @@ public class UserService {
         if (bankAccountRepository.existsByOwnerId(id)){
             throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
         }
-        userRepository.delete(user);
+
+        try {
+            userRepository.delete(user);
+            userRepository.flush();
+        } catch (DataIntegrityViolationException e){
+            throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
+        }
     }
 
     public boolean existsById(long id) {
