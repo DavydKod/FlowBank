@@ -333,7 +333,7 @@ public class TransactionServiceTest {
         when(bankAccountRepository.findByIdForUpdate(2L))
                 .thenReturn(Optional.of(accountTo));
 
-        when(transactionRepository.save(any(Transaction.class)))
+        when(transactionRepository.saveAndFlush(any(Transaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         TransactionResponse response =
@@ -347,7 +347,7 @@ public class TransactionServiceTest {
         verify(bankAccountRepository).findByIdForUpdate(1L);
         verify(bankAccountRepository).findByIdForUpdate(2L);
 
-        verify(transactionRepository).save(any(Transaction.class));
+        verify(transactionRepository).saveAndFlush(any(Transaction.class));
     }
 
     @Test

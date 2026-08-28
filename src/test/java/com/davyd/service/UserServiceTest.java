@@ -72,7 +72,7 @@ public class UserServiceTest {
         when(userRepository.existsByEmail("davyd@gmail.com"))
                 .thenReturn(false);
 
-        when(userRepository.save(any(User.class)))
+        when(userRepository.saveAndFlush(any(User.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         UserResponse result =
@@ -83,7 +83,7 @@ public class UserServiceTest {
 
         verify(userRepository).existsByEmail("davyd@gmail.com");
 
-        verify(userRepository).save(argThat(user ->
+        verify(userRepository).saveAndFlush(argThat(user ->
                 user.getName().equals("Davyd")
                         && user.getEmail().equals("davyd@gmail.com")
         ));
