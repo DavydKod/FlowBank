@@ -1,6 +1,7 @@
 package com.davyd.exception;
 
 import com.davyd.dto.response.ErrorResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -116,6 +117,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleEmailAlreadyExists(EmailAlreadyExistsException exception){
+        HttpStatus status = HttpStatus.CONFLICT;
+
+        return ResponseEntity
+                .status(status)
+                .body(createErrorResponse(status, exception));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException exception){
         HttpStatus status = HttpStatus.CONFLICT;
 
         return ResponseEntity

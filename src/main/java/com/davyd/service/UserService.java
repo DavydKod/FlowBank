@@ -14,8 +14,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class UserService {
     private final UserRepository userRepository;
     private final BankAccountRepository bankAccountRepository;
@@ -54,18 +56,20 @@ public class UserService {
                 .map(UserMapper::toResponse);
     }
 
+    @Transactional
     public UserResponse createUser(String name, String email) {
         if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException(email);
         }
 
         try {
-            return UserMapper.toResponse(userRepository.save(new User(name, email)));
+            return UserMapper.toResponse(userRepository.saveAndFlush(new User(name, email)));
         } catch (DataIntegrityViolationException e){
             throw new EmailAlreadyExistsException(email);
         }
     }
 
+    @Transactional
     public UserResponse changeUserName(long id, String newName) {
         User user = getUserEntity(id);
 
@@ -74,13 +78,20 @@ public class UserService {
         return UserMapper.toResponse(userRepository.save(user));
     }
 
+    @Transactional
     public void deleteUser(long id) {
         User user = getUserEntity(id);
 
         if (bankAccountRepository.existsByOwnerId(id)){
             throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
         }
-        userRepository.delete(user);
+
+        try {
+            userRepository.delete(user);
+            userRepository.flush();
+        } catch (DataIntegrityViolationException e){
+            throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
+        }
     }
 
     public boolean existsById(long id) {

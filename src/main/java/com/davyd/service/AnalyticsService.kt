@@ -5,6 +5,8 @@ import com.davyd.repository.TransactionRepository
 import com.davyd.dto.response.AccountAnalytics
 import com.davyd.exception.BankAccountNotFoundException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Isolation
+import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -13,6 +15,10 @@ class AnalyticsService (
     private val transactionRepository: TransactionRepository,
     private val bankAccountRepository: BankAccountRepository
 ){
+    @Transactional(
+        readOnly = true,
+        isolation = Isolation.REPEATABLE_READ
+    )
     fun getAccountAnalytics(accountId: Long): AccountAnalytics {
         if (!bankAccountRepository.existsById(accountId)) {
             throw BankAccountNotFoundException(accountId)

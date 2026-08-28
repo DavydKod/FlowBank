@@ -8,14 +8,14 @@ import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class BankAccountService {
     private final BankAccountRepository bankAccountRepository;
     private final UserRepository userRepository;
@@ -26,13 +26,19 @@ public class BankAccountService {
         this.userRepository = userRepository;
     }
 
+    @Transactional
     public BankAccountResponse createAccount(long ownerId) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new UserNotFoundException(ownerId));
 
         BankAccount account = new BankAccount(owner);
 
-        return BankAccountMapper.toResponse(bankAccountRepository.save(account));
+        try {
+            return BankAccountMapper.toResponse(bankAccountRepository.saveAndFlush(account));
+        } catch (DataIntegrityViolationException e){
+            throw new UserNotFoundException(ownerId);
+        }
+
     }
 
     public BankAccountResponse getAccount(long id) {
