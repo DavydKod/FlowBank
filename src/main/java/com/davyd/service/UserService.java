@@ -55,6 +55,7 @@ public class UserService {
                 .map(UserMapper::toResponse);
     }
 
+    @Transactional
     public UserResponse createUser(String name, String email) {
         if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException(email);
@@ -76,6 +77,7 @@ public class UserService {
         return UserMapper.toResponse(userRepository.save(user));
     }
 
+    @Transactional
     public void deleteUser(long id) {
         User user = getUserEntity(id);
 

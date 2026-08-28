@@ -15,6 +15,8 @@ import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import com.davyd.util.Validation;
 import jakarta.transaction.Transactional;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -116,7 +118,7 @@ public class TransactionService {
             return handleExisting(existingTransactionWithKey.get(), fromAccountId, toAccountId, amount);
         }
 
-        //to avoid deadlocks
+
         long firstId = Math.min(fromAccountId, toAccountId);
         long secondId = Math.max(fromAccountId, toAccountId);
 
@@ -158,8 +160,23 @@ public class TransactionService {
                 idempotencyKey
         );
 
-        return TransactionMapper
-                .toResponse(transactionRepository.save(transaction));
+        try{
+            return TransactionMapper
+                    .toResponse(transactionRepository.saveAndFlush(transaction));
+        } catch (DataIntegrityViolationException e){
+            Throwable cause = e;
+
+            while (cause != null){
+                if (cause instanceof ConstraintViolationException cve
+                        && "uk_transactions_idempotency_key".equals(cve.getConstraintName())){
+                    throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
+                }
+
+                cause = cause.getCause();
+            }
+
+            throw e;
+        }
     }
 
     private Sort getSortMethod(TransactionSortingMethod method){
