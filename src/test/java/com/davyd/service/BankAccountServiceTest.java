@@ -46,7 +46,7 @@ class BankAccountServiceTest {
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(owner));
 
-        when(bankAccountRepository.save(any(BankAccount.class)))
+        when(bankAccountRepository.saveAndFlush(any(BankAccount.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         BankAccountResponse result =
@@ -56,7 +56,7 @@ class BankAccountServiceTest {
         assertEquals(AccountStatus.ACTIVE, result.status());
 
         verify(userRepository).findById(1L);
-        verify(bankAccountRepository).save(any(BankAccount.class));
+        verify(bankAccountRepository).saveAndFlush(any(BankAccount.class));
     }
 
     @Test
