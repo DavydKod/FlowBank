@@ -1,7 +1,10 @@
-package com.davyd.models;
+package com.davyd.unit.models;
 
 import com.davyd.exception.InsufficientFundsException;
 import com.davyd.exception.InvalidAccountStatusException;
+import com.davyd.models.AccountStatus;
+import com.davyd.models.BankAccount;
+import com.davyd.models.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

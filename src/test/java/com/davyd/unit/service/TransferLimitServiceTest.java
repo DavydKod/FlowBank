@@ -1,9 +1,10 @@
-package com.davyd.service;
+package com.davyd.unit.service;
 
 import com.davyd.exception.DailyTransferLimitExceededException;
 import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.TransactionRepository;
+import com.davyd.service.TransferLimitService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

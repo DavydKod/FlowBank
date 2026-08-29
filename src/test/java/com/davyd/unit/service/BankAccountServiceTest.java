@@ -1,4 +1,4 @@
-package com.davyd.service;
+package com.davyd.unit.service;
 
 import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.exception.BankAccountNotFoundException;
@@ -9,7 +9,7 @@ import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.davyd.service.BankAccountService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

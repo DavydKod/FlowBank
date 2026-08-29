@@ -1,5 +1,8 @@
-package com.davyd.models;
+package com.davyd.unit.models;
 
+import com.davyd.models.BankAccount;
+import com.davyd.models.Transaction;
+import com.davyd.models.User;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
