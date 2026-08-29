@@ -1,4 +1,4 @@
-package com.davyd.service;
+package com.davyd.unit.service;
 
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
@@ -10,7 +10,8 @@ import com.davyd.models.Transaction;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.davyd.service.TransactionService;
+import com.davyd.service.TransferLimitService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

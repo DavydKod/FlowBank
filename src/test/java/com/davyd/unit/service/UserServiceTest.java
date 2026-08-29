@@ -1,4 +1,4 @@
-package com.davyd.service;
+package com.davyd.unit.service;
 
 import com.davyd.dto.response.UserResponse;
 import com.davyd.exception.EmailAlreadyExistsException;
@@ -6,6 +6,7 @@ import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
+import com.davyd.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

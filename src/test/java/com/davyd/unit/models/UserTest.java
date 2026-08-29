@@ -1,5 +1,6 @@
-package com.davyd.models;
+package com.davyd.unit.models;
 
+import com.davyd.models.User;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
