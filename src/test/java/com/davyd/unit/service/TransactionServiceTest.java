@@ -7,6 +7,7 @@ import com.davyd.exception.*;
 import com.davyd.mapper.TransactionMapper;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
+import com.davyd.models.TransactionType;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
@@ -512,6 +513,7 @@ public class TransactionServiceTest {
         BankAccount toAccount = new BankAccount(receiver);
 
         return new Transaction(
+                TransactionType.TRANSFER,
                 fromAccount,
                 toAccount,
                 new BigDecimal("100.00"),
@@ -618,7 +620,8 @@ public class TransactionServiceTest {
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
         Transaction transaction =
-                new Transaction(accountFrom, accountTo, BigDecimal.valueOf(50), LocalDateTime.now(clock), "key");
+                new Transaction(TransactionType.TRANSFER, accountFrom, accountTo,
+                        BigDecimal.valueOf(50), LocalDateTime.now(clock), "key");
 
         when(transactionRepository.findByIdempotencyKey("key"))
                 .thenReturn(Optional.of(transaction));
@@ -655,7 +658,7 @@ public class TransactionServiceTest {
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
         Transaction transaction =
-                new Transaction(anotherAccountFrom, accountTo,
+                new Transaction(TransactionType.TRANSFER, anotherAccountFrom, accountTo,
                         BigDecimal.valueOf(50), LocalDateTime.now(clock), "key");
 
         when(transactionRepository.findByIdempotencyKey("key"))
@@ -693,7 +696,7 @@ public class TransactionServiceTest {
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
         Transaction transaction =
-                new Transaction(accountFrom, anotherAccountTo,
+                new Transaction(TransactionType.TRANSFER, accountFrom, anotherAccountTo,
                         BigDecimal.valueOf(50), LocalDateTime.now(clock), "key");
 
         when(transactionRepository.findByIdempotencyKey("key"))
@@ -726,7 +729,7 @@ public class TransactionServiceTest {
         BigDecimal transferAmount = BigDecimal.valueOf(150);
 
         Transaction transaction =
-                new Transaction(accountFrom, accountTo,
+                new Transaction(TransactionType.TRANSFER, accountFrom, accountTo,
                         BigDecimal.valueOf(150), LocalDateTime.now(clock), "key");
 
         ReflectionTestUtils.setField(transaction, "id", 1L);

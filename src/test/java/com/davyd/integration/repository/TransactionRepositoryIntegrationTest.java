@@ -3,6 +3,7 @@ package com.davyd.integration.repository;
 import com.davyd.integration.TestcontainersConfiguration;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
+import com.davyd.models.TransactionType;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
@@ -60,7 +61,7 @@ class TransactionRepositoryIntegrationTest {
     }
 
 
-    private Transaction createTransaction(
+    private Transaction createTransferTransaction(
             BankAccount from,
             BankAccount to,
             String amount,
@@ -69,6 +70,7 @@ class TransactionRepositoryIntegrationTest {
     ) {
         return transactionRepository.save(
                 new Transaction(
+                        TransactionType.TRANSFER,
                         from,
                         to,
                         new BigDecimal(amount),
@@ -91,21 +93,21 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account2 = createAccount(user);
         BankAccount account3 = createAccount(user);
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "100.00",
                 LocalDateTime.now(),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account3,
                 "200.00",
                 LocalDateTime.now(),
                 "key-2"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "300.00",
                 LocalDateTime.now(),
@@ -140,21 +142,21 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account2 = createAccount(user);
         BankAccount account3 = createAccount(user);
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "100.00",
                 LocalDateTime.now(),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account3, account1,
                 "200.00",
                 LocalDateTime.now(),
                 "key-2"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "300.00",
                 LocalDateTime.now(),
@@ -190,7 +192,7 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account3 = createAccount(user);
 
         // sent
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "100.00",
                 LocalDateTime.now(),
@@ -198,7 +200,7 @@ class TransactionRepositoryIntegrationTest {
         );
 
         // received
-        createTransaction(
+        createTransferTransaction(
                 account3, account1,
                 "200.00",
                 LocalDateTime.now(),
@@ -206,7 +208,7 @@ class TransactionRepositoryIntegrationTest {
         );
 
         // unrelated
-        createTransaction(
+        createTransferTransaction(
                 account2, account3,
                 "300.00",
                 LocalDateTime.now(),
@@ -238,21 +240,21 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account1 = createAccount(user);
         BankAccount account2 = createAccount(user);
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "100.00",
                 LocalDateTime.now(),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "250.00",
                 LocalDateTime.now(),
                 "key-2"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "500.00",
                 LocalDateTime.now(),
@@ -278,21 +280,21 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account1 = createAccount(user);
         BankAccount account2 = createAccount(user);
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "150.00",
                 LocalDateTime.now(),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "350.00",
                 LocalDateTime.now(),
                 "key-2"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "900.00",
                 LocalDateTime.now(),
@@ -341,14 +343,14 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account2 = createAccount(user);
 
         // account1 sent x2
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "100.00",
                 LocalDateTime.now(),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "200.00",
                 LocalDateTime.now(),
@@ -356,7 +358,7 @@ class TransactionRepositoryIntegrationTest {
         );
 
         // account1 received x1
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "300.00",
                 LocalDateTime.now(),
@@ -396,21 +398,21 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account1 = createAccount(user);
         BankAccount account2 = createAccount(user);
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "100.00",
                 LocalDateTime.now(),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "900.00",
                 LocalDateTime.now(),
                 "key-2"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "300.00",
                 LocalDateTime.now(),
@@ -437,21 +439,21 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account1 = createAccount(user);
         BankAccount account2 = createAccount(user);
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "150.00",
                 LocalDateTime.now(),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "750.00",
                 LocalDateTime.now(),
                 "key-2"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account2, account1,
                 "250.00",
                 LocalDateTime.now(),
@@ -485,21 +487,21 @@ class TransactionRepositoryIntegrationTest {
         LocalDateTime since =
                 LocalDateTime.of(2026, 8, 29, 12, 0);
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "500.00",
                 since.minusHours(1),
                 "key-1"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "100.00",
                 since.plusHours(1),
                 "key-2"
         );
 
-        createTransaction(
+        createTransferTransaction(
                 account1, account2,
                 "200.00",
                 since.plusHours(2),
@@ -531,7 +533,7 @@ class TransactionRepositoryIntegrationTest {
         LocalDateTime since =
                 LocalDateTime.of(2026, 8, 29, 12, 0);
 
-        createTransaction(
+        createTransferTransaction(
                 account1,
                 account2,
                 "100.00",
@@ -565,7 +567,7 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account1 = createAccount(user);
         BankAccount account2 = createAccount(user);
 
-        Transaction transaction = createTransaction(
+        Transaction transaction = createTransferTransaction(
                 account1,
                 account2,
                 "100.00",
@@ -605,12 +607,12 @@ class TransactionRepositoryIntegrationTest {
         BankAccount account1 = createAccount(user);
         BankAccount account2 = createAccount(user);
 
-        createTransaction(account1, account2, "200", LocalDateTime.now(), key);
+        createTransferTransaction(account1, account2, "200", LocalDateTime.now(), key);
 
         flushAndClearPersistenceContext();
 
         assertThrows(DataIntegrityViolationException.class, () -> {
-            createTransaction(account2, account1, "100", LocalDateTime.now(), key);
+            createTransferTransaction(account2, account1, "100", LocalDateTime.now(), key);
             entityManager.flush();
         });
     }
