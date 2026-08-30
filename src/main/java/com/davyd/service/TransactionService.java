@@ -11,6 +11,7 @@ import com.davyd.mapper.TransactionMapper;
 import com.davyd.models.AccountStatus;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
+import com.davyd.models.TransactionType;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import com.davyd.util.Validation;
@@ -153,6 +154,7 @@ public class TransactionService {
         toAccount.deposit(amount);
 
         Transaction transaction = new Transaction(
+                TransactionType.TRANSFER,
                 fromAccount,
                 toAccount,
                 amount,
