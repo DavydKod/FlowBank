@@ -155,12 +155,48 @@ class TransactionTest {
 
 
     //----------------------------------------------------------------
-    // WITHDRAWAL TRANSACTION TESTS
+    // WITHDRAWAL AND DEPOSIT TRANSACTION TESTS
     //----------------------------------------------------------------
 
+    @Test
+    void shouldAllowFromNullWhenDepositTransaction(){
+        User user = new User("Alex", "alex@gmail.com");
 
+        BankAccount toAccount = new BankAccount(user);
 
-    //----------------------------------------------------------------
-    // DEPOSIT TRANSACTION TESTS
-    //----------------------------------------------------------------
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
+        assertDoesNotThrow(() -> new Transaction(TransactionType.DEPOSIT, null, toAccount,
+                        BigDecimal.valueOf(20L), createdAt, "key"));
+    }
+
+    @Test
+    void shouldThrowWhenToNullDuringDepositTransaction(){
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                new Transaction(TransactionType.DEPOSIT, null, null,
+                        BigDecimal.valueOf(20L), createdAt, "key"));
+    }
+
+    @Test
+    void shouldAllowToNullWhenWithdrawalTransaction(){
+        User user = new User("Alex", "alex@gmail.com");
+
+        BankAccount fromAccount = new BankAccount(user);
+
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
+        assertDoesNotThrow(() -> new Transaction(TransactionType.DEPOSIT, fromAccount, null,
+                BigDecimal.valueOf(20L), createdAt, "key"));
+    }
+
+    @Test
+    void shouldThrowWhenFromNullDuringWithdrawalTransaction(){
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                new Transaction(TransactionType.DEPOSIT, null, null,
+                        BigDecimal.valueOf(20L), createdAt, "key"));
+    }
 }
