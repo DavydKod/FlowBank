@@ -9,8 +9,12 @@ public class TransactionMapper {
     public static TransactionResponse toResponse(Transaction transaction){
         return new TransactionResponse(
                 transaction.getId(),
-                transaction.getFromAccount().getId(),
-                transaction.getToAccount().getId(),
+                transaction.getFromAccount() != null
+                        ? transaction.getFromAccount().getId()
+                        : null,
+                transaction.getToAccount() != null
+                        ? transaction.getToAccount().getId()
+                        : null,
                 transaction.getAmount(),
                 transaction.getCreatedAt()
         );
