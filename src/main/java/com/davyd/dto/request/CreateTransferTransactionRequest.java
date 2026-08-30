@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 
 @Schema(description = "Data required to create a transaction and perform a money transfer between two " +
         "bank accounts")
-public record CreateTransactionRequest(
+public record CreateTransferTransactionRequest(
         @Schema(description = "Source bank account the money will be withdrawn from",
         example = "1")
         @Positive

@@ -13,12 +13,12 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "from_account_id", nullable = false)
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "from_account_id", nullable = true)
     private BankAccount fromAccount;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "to_account_id", nullable = false)
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "to_account_id", nullable = true)
     private BankAccount toAccount;
 
     @Column(nullable = false, precision = 19, scale = 2)
@@ -34,10 +34,24 @@ public class Transaction {
     protected Transaction() {
     }
 
-    public Transaction(BankAccount fromAccount, BankAccount toAccount,
-                       BigDecimal amount, LocalDateTime createdAt, String idempotencyKey) {
-        Validation.validateNotNull(fromAccount, "Bank account");
-        Validation.validateNotNull(toAccount, "Bank account");
+    public Transaction(TransactionType transactionType, BankAccount fromAccount,
+                       BankAccount toAccount, BigDecimal amount, LocalDateTime createdAt, String idempotencyKey) {
+
+        if (transactionType == TransactionType.WITHDRAWAL) {
+            Validation.validateNotNull(fromAccount, "Bank account");
+            Validation.validateNull(toAccount, "Bank account");
+        }
+
+        if (transactionType == TransactionType.DEPOSIT) {
+            Validation.validateNotNull(toAccount, "Bank account");
+            Validation.validateNull(fromAccount, "Bank account");
+        }
+
+        if (transactionType == TransactionType.TRANSFER) {
+            Validation.validateNotNull(fromAccount, "Bank account");
+            Validation.validateNotNull(toAccount, "Bank account");
+        }
+
         Validation.validateNotBlank(idempotencyKey, "Idempotency key");
         Validation.validateNotNull(createdAt, "Creation date");
         amount = Validation.validateMoney(amount);

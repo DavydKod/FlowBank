@@ -18,6 +18,13 @@ public final class Validation {
         return value;
     }
 
+    public static <T> T validateNull(T value, String fieldName) {
+        if (value != null) {
+            throw new IllegalArgumentException(fieldName + " must be null");
+        }
+        return value;
+    }
+
     public static String validateNotBlank(String value, String fieldName) {
         validateNotNull(value, fieldName);
 
@@ -62,5 +69,15 @@ public final class Validation {
         }
 
         return amount;
+    }
+
+    public static String validateIdempotencyKey(String idempotencyKey){
+        validateNotBlank(idempotencyKey, "Idempotency key");
+
+        if (idempotencyKey.length() > 100){
+            throw new IllegalArgumentException("Idempotency key cannot exceed 100 characters");
+        }
+
+        return idempotencyKey;
     }
 }

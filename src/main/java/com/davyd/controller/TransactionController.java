@@ -1,6 +1,7 @@
 package com.davyd.controller;
 
-import com.davyd.dto.request.CreateTransactionRequest;
+import com.davyd.dto.request.CreateExternalTransactionRequest;
+import com.davyd.dto.request.CreateTransferTransactionRequest;
 import com.davyd.dto.TransactionDirection;
 import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.dto.response.TransactionResponse;
@@ -21,8 +22,6 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(
         name = "Transactions",
@@ -158,7 +157,7 @@ public class TransactionController {
             )
     })
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionResponse> createTransaction(
+    public ResponseEntity<TransactionResponse> createTransferTransaction(
             @Parameter(
                     description = "Unique key used to prevent duplicate transfers",
                     example = "a7196b87-2f45-46d3-af42-4d8f8ff90fe2", required = true)
@@ -169,7 +168,7 @@ public class TransactionController {
 
             @RequestBody
             @Valid
-            CreateTransactionRequest request
+            CreateTransferTransactionRequest request
     ) {
         TransactionResponse transactionResponse = transactionService.transfer(
                 request.fromAccountId(),
@@ -177,6 +176,98 @@ public class TransactionController {
                 request.amount(),
                 idempotencyKey
         );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(transactionResponse);
+    }
+
+    @Operation(
+            summary = "Withdraw money from bank account",
+            description = "Withdraw money from bank account and" +
+                    " creates a transaction. An idempotency key is required" +
+                    " to prevent duplicate transfers."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Withdrawal completed and transaction created successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request, account ID, amount or idempotency key"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Bank account not found"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Withdrawal conflicts with the current account state or idempotency rules"
+            )
+    })
+    @PostMapping("/withdraw")
+    public ResponseEntity<TransactionResponse> createWithdrawalTransaction(
+            @Parameter(
+                    description = "Unique key used to prevent duplicate transfers",
+                    example = "a7196b87-2f45-46d3-af42-4d8f8ff90fe2", required = true)
+            @RequestHeader("Idempotency-Key")
+            @NotBlank(message = "Idempotency key cannot be blank")
+            @Size(max = 100, message = "Idempotency key cannot exceed 100 characters")
+            String idempotencyKey,
+
+            @RequestBody
+            @Valid
+            CreateExternalTransactionRequest request
+    ){
+        TransactionResponse transactionResponse = transactionService
+                .withdraw(request.accountId(), request.amount(), idempotencyKey);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(transactionResponse);
+    }
+
+    @Operation(
+            summary = "Deposit money to bank account",
+            description = "Deposit money to bank account and" +
+                    " creates a transaction. An idempotency key is required" +
+                    " to prevent duplicate transfers."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Deposit completed and transaction created successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request, account ID, amount or idempotency key"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Bank account not found"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Deposit conflicts with the current account state or idempotency rules"
+            )
+    })
+    @PostMapping("/deposit")
+    public ResponseEntity<TransactionResponse> createDepositTransaction(
+            @Parameter(
+                    description = "Unique key used to prevent duplicate transfers",
+                    example = "a7196b87-2f45-46d3-af42-4d8f8ff90fe2", required = true)
+            @RequestHeader("Idempotency-Key")
+            @NotBlank(message = "Idempotency key cannot be blank")
+            @Size(max = 100, message = "Idempotency key cannot exceed 100 characters")
+            String idempotencyKey,
+
+            @RequestBody
+            @Valid
+            CreateExternalTransactionRequest request
+    ){
+        TransactionResponse transactionResponse = transactionService
+                .deposit(request.accountId(), request.amount(), idempotencyKey);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
