@@ -38,13 +38,13 @@ public class Transaction {
                        BankAccount toAccount, BigDecimal amount, LocalDateTime createdAt, String idempotencyKey) {
 
         if (transactionType == TransactionType.WITHDRAWAL) {
-            Validation.validateNotNull(toAccount, "Bank account");
-            Validation.validateNull(fromAccount, "Bank account");
+            Validation.validateNotNull(fromAccount, "Bank account");
+            Validation.validateNull(toAccount, "Bank account");
         }
 
         if (transactionType == TransactionType.DEPOSIT) {
-            Validation.validateNotNull(fromAccount, "Bank account");
-            Validation.validateNull(toAccount, "Bank account");
+            Validation.validateNotNull(toAccount, "Bank account");
+            Validation.validateNull(fromAccount, "Bank account");
         }
 
         if (transactionType == TransactionType.TRANSFER) {

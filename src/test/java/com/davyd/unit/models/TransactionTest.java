@@ -187,7 +187,7 @@ class TransactionTest {
 
         LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
 
-        assertDoesNotThrow(() -> new Transaction(TransactionType.DEPOSIT, fromAccount, null,
+        assertDoesNotThrow(() -> new Transaction(TransactionType.WITHDRAWAL, fromAccount, null,
                 BigDecimal.valueOf(20L), createdAt, "key"));
     }
 
@@ -198,5 +198,33 @@ class TransactionTest {
         assertThrows(IllegalArgumentException.class, () ->
                 new Transaction(TransactionType.DEPOSIT, null, null,
                         BigDecimal.valueOf(20L), createdAt, "key"));
+    }
+
+    @Test
+    void shouldNotAllowNotNullableFromAccountDuringDeposit(){
+        User user1 = new User("Davyd", "davyd@gmail.com");
+        User user2 = new User("Alex", "alex@gmail.com");
+
+        BankAccount fromAccount = new BankAccount(user1);
+        BankAccount toAccount = new BankAccount(user2);
+
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
+        assertThrows(IllegalArgumentException.class, () -> new Transaction(TransactionType.DEPOSIT, fromAccount, toAccount,
+                BigDecimal.valueOf(20L), createdAt, "key"));
+    }
+
+    @Test
+    void shouldNotAllowNotNullableToAccountDuringWithdrawal(){
+        User user1 = new User("Davyd", "davyd@gmail.com");
+        User user2 = new User("Alex", "alex@gmail.com");
+
+        BankAccount fromAccount = new BankAccount(user1);
+        BankAccount toAccount = new BankAccount(user2);
+
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 25, 12, 0);
+
+        assertThrows(IllegalArgumentException.class, () -> new Transaction(TransactionType.WITHDRAWAL, fromAccount, toAccount,
+                BigDecimal.valueOf(20L), createdAt, "key"));
     }
 }
