@@ -70,4 +70,14 @@ public final class Validation {
 
         return amount;
     }
+
+    public static String validateIdempotencyKey(String idempotencyKey){
+        validateNotBlank(idempotencyKey, "Idempotency key");
+
+        if (idempotencyKey.length() > 100){
+            throw new IllegalArgumentException("Idempotency key cannot exceed 100 characters");
+        }
+
+        return idempotencyKey;
+    }
 }

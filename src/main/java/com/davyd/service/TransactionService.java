@@ -103,11 +103,7 @@ public class TransactionService {
             String idempotencyKey
     ) {
         amount = Validation.validateMoney(amount);
-        idempotencyKey = Validation.validateNotBlank(idempotencyKey, "Idempotency key");
-
-        if (idempotencyKey.length() > 100){
-            throw new IllegalArgumentException("Idempotency key cannot exceed 100 characters");
-        }
+        idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
 
         if (fromAccountId == toAccountId){
             throw new IllegalArgumentException("Bank accounts cannot be the same");
@@ -137,10 +133,6 @@ public class TransactionService {
 
         BankAccount fromAccount = fromAccountId == firstId ? firstAccount : secondAccount;
         BankAccount toAccount = toAccountId == firstId ? firstAccount : secondAccount;
-
-        if (fromAccount.getStatus() != AccountStatus.ACTIVE || toAccount.getStatus() != AccountStatus.ACTIVE){
-            throw new InvalidAccountStatusException("Status of account must be active to provide transaction");
-        }
 
         existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
@@ -181,6 +173,104 @@ public class TransactionService {
         }
     }
 
+    @Transactional
+    public TransactionResponse withdraw(long fromAccountId, BigDecimal amount, String idempotencyKey){
+        amount = Validation.validateMoney(amount);
+        idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
+
+        Optional<Transaction> existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (existingTransactionWithKey.isPresent()){
+            return handleExisting(existingTransactionWithKey.get(), fromAccountId, null, amount);
+        }
+
+        BankAccount bankAccount = bankAccountRepository.findByIdForUpdate(fromAccountId)
+                .orElseThrow(() -> new BankAccountNotFoundException(fromAccountId));
+
+        existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (existingTransactionWithKey.isPresent()){
+            return handleExisting(existingTransactionWithKey.get(), fromAccountId, null, amount);
+        }
+
+        bankAccount.withdraw(amount);
+
+        Transaction transaction = new Transaction(
+                TransactionType.WITHDRAWAL,
+                bankAccount,
+                null,
+                amount,
+                LocalDateTime.now(clock),
+                idempotencyKey
+        );
+
+        try {
+            return TransactionMapper.toResponse(transactionRepository.saveAndFlush(transaction));
+        } catch (DataIntegrityViolationException e){
+            Throwable cause = e;
+
+            while (cause != null){
+                if (cause instanceof ConstraintViolationException cve
+                        && "uk_transactions_idempotency_key".equals(cve.getConstraintName())){
+                    throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
+                }
+
+                cause = cause.getCause();
+            }
+
+            throw e;
+        }
+    }
+
+    @Transactional
+    public TransactionResponse deposit(long toAccountId, BigDecimal amount, String idempotencyKey){
+        amount = Validation.validateMoney(amount);
+        idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
+
+        Optional<Transaction> existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (existingTransactionWithKey.isPresent()){
+            return handleExisting(existingTransactionWithKey.get(), null, toAccountId, amount);
+        }
+
+        BankAccount bankAccount = bankAccountRepository.findByIdForUpdate(toAccountId)
+                .orElseThrow(() -> new BankAccountNotFoundException(toAccountId));
+
+        existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (existingTransactionWithKey.isPresent()){
+            return handleExisting(existingTransactionWithKey.get(), toAccountId, null, amount);
+        }
+
+        bankAccount.deposit(amount);
+
+        Transaction transaction = new Transaction(
+                TransactionType.DEPOSIT,
+                null,
+                bankAccount,
+                amount,
+                LocalDateTime.now(clock),
+                idempotencyKey
+        );
+
+        try {
+            return TransactionMapper.toResponse(transactionRepository.saveAndFlush(transaction));
+        } catch (DataIntegrityViolationException e){
+            Throwable cause = e;
+
+            while (cause != null){
+                if (cause instanceof ConstraintViolationException cve
+                        && "uk_transactions_idempotency_key".equals(cve.getConstraintName())){
+                    throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
+                }
+
+                cause = cause.getCause();
+            }
+
+            throw e;
+        }
+    }
+
     private Sort getSortMethod(TransactionSortingMethod method){
         if (method == null){
             return Sort.by(Sort.Direction.DESC, "createdAt");
@@ -194,9 +284,18 @@ public class TransactionService {
         };
     }
 
-    private boolean matchesRequest(Transaction transaction, Long fromId, Long toId, BigDecimal amount){
-        return  Objects.equals(transaction.getFromAccount().getId(), fromId) &&
-                Objects.equals(transaction.getToAccount().getId(), toId) &&
+    private Long getAccountIdOrNull(BankAccount account) {
+        return account == null ? null : account.getId();
+    }
+
+    private boolean matchesRequest(
+            Transaction transaction,
+            Long fromId,
+            Long toId,
+            BigDecimal amount
+    ) {
+        return Objects.equals(getAccountIdOrNull(transaction.getFromAccount()), fromId) &&
+                Objects.equals(getAccountIdOrNull(transaction.getToAccount()), toId) &&
                 transaction.getAmount().compareTo(amount) == 0;
     }
 
