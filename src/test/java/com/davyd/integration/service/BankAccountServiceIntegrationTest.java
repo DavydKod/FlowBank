@@ -6,10 +6,17 @@ import com.davyd.exception.BankAccountNotFoundException;
 import com.davyd.exception.UserDeletionNotAllowedException;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.AccountStatus;
+import com.davyd.models.BankAccount;
 import com.davyd.service.BankAccountService;
 import com.davyd.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -117,6 +124,137 @@ public class BankAccountServiceIntegrationTest extends BaseServiceIntegrationTes
         assertEquals(AccountStatus.CLOSED, bankAccountService.getAccount(bankAccountResponse.id()).status());
     }
 
-    //getAllAccounts test
-    //getAccountsByOwner test
+    @Test
+    void shouldGetAllBankAccounts(){
+        String name1 = "Davyd";
+        String email1 = "davyd@gmail.com";
+        UserResponse userResponse1 = userService.createUser(name1, email1);
+
+        String name2 = "John";
+        String email2 = "john@gmail.com";
+        UserResponse userResponse2 = userService.createUser(name2, email2);
+
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse2.id());
+        bankAccountService.createAccount(userResponse2.id());
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<BankAccountResponse> bankAccountsResponse = bankAccountService.getAllAccounts(pageable);
+
+        assertEquals(5, bankAccountsResponse.getTotalElements());
+        assertEquals(5, bankAccountsResponse.getContent().size());
+
+        assertTrue(bankAccountsResponse
+                .stream().anyMatch(bankAccount ->
+                        Objects.equals(bankAccount.ownerId(), userResponse1.id())));
+
+        assertTrue(bankAccountsResponse
+                .stream().anyMatch(bankAccount ->
+                        Objects.equals(bankAccount.ownerId(), userResponse2.id())));
+
+        assertTrue(bankAccountsResponse.stream()
+                .allMatch(bankAccount -> bankAccount.id() != null));
+
+    }
+
+    @Test
+    void shouldGetBankAccountsWithPagination(){
+        String name1 = "Davyd";
+        String email1 = "davyd@gmail.com";
+        UserResponse userResponse1 = userService.createUser(name1, email1);
+
+        String name2 = "John";
+        String email2 = "john@gmail.com";
+        UserResponse userResponse2 = userService.createUser(name2, email2);
+
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse2.id());
+        bankAccountService.createAccount(userResponse2.id());
+
+        Pageable pageable = PageRequest.of(0, 3, Sort.by("id").ascending());
+
+        Page<BankAccountResponse> bankAccountsResponse = bankAccountService.getAllAccounts(pageable);
+
+        assertEquals(5, bankAccountsResponse.getTotalElements());
+        assertEquals(3, bankAccountsResponse.getContent().size());
+
+        assertEquals(2, bankAccountsResponse.getTotalPages());
+        assertEquals(0, bankAccountsResponse.getNumber());
+        assertTrue(bankAccountsResponse.hasNext());
+    }
+
+    @Test
+    void shouldThrowWhenGettingBankAccountsForNonExistentUser(){
+        assertThrows(UserNotFoundException.class, () ->
+                bankAccountService.getAccountsByOwner(1L, PageRequest.of(0, 5)));
+    }
+
+    @Test
+    void shouldGetAllBankAccountsForUser(){
+        String name1 = "Davyd";
+        String email1 = "davyd@gmail.com";
+        UserResponse userResponse1 = userService.createUser(name1, email1);
+
+        String name2 = "John";
+        String email2 = "john@gmail.com";
+        UserResponse userResponse2 = userService.createUser(name2, email2);
+
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse2.id());
+        bankAccountService.createAccount(userResponse2.id());
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        Page<BankAccountResponse> bankAccountsResponse1 =
+                bankAccountService.getAccountsByOwner(userResponse1.id(), pageable);
+
+        assertEquals(3, bankAccountsResponse1.getTotalElements());
+
+        assertTrue(bankAccountsResponse1.stream()
+                .allMatch(bankAccount -> Objects.equals(userResponse1.id(), bankAccount.ownerId())));
+
+        Page<BankAccountResponse> bankAccountsResponse2 =
+                bankAccountService.getAccountsByOwner(userResponse2.id(), pageable);
+
+        assertEquals(2, bankAccountsResponse2.getTotalElements());
+
+        assertTrue(bankAccountsResponse2.stream()
+                .allMatch(bankAccount -> Objects.equals(userResponse2.id(), bankAccount.ownerId())));
+    }
+
+    @Test
+    void shouldGetBankAccountsForUserWithPagination(){
+        String name1 = "Davyd";
+        String email1 = "davyd@gmail.com";
+        UserResponse userResponse1 = userService.createUser(name1, email1);
+
+        String name2 = "John";
+        String email2 = "john@gmail.com";
+        UserResponse userResponse2 = userService.createUser(name2, email2);
+
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse1.id());
+        bankAccountService.createAccount(userResponse2.id());
+        bankAccountService.createAccount(userResponse2.id());
+
+        Pageable pageable = PageRequest.of(0, 2, Sort.by("id").ascending());
+
+        Page<BankAccountResponse> bankAccountsResponse =
+                bankAccountService.getAccountsByOwner(userResponse1.id(), pageable);
+
+        assertEquals(3, bankAccountsResponse.getTotalElements());
+        assertEquals(2, bankAccountsResponse.getContent().size());
+
+        assertEquals(2, bankAccountsResponse.getTotalPages());
+        assertEquals(0, bankAccountsResponse.getNumber());
+        assertTrue(bankAccountsResponse.hasNext());
+    }
 }
