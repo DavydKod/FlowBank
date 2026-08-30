@@ -18,6 +18,13 @@ public final class Validation {
         return value;
     }
 
+    public static <T> T validateNull(T value, String fieldName) {
+        if (value != null) {
+            throw new IllegalArgumentException(fieldName + " must be null");
+        }
+        return value;
+    }
+
     public static String validateNotBlank(String value, String fieldName) {
         validateNotNull(value, fieldName);
 
