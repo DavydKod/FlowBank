@@ -8,6 +8,8 @@ import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
+import com.davyd.util.Validation;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,9 +38,12 @@ public class BankAccountService {
         try {
             return BankAccountMapper.toResponse(bankAccountRepository.saveAndFlush(account));
         } catch (DataIntegrityViolationException e){
-            throw new UserNotFoundException(ownerId);
-        }
+            if (Validation.isConstraintViolation(e, "fk_bank_accounts_owner")){
+                throw new UserNotFoundException(ownerId);
+            }
 
+            throw e;
+        }
     }
 
     public BankAccountResponse getAccount(long id) {

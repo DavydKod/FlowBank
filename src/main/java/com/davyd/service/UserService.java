@@ -2,12 +2,15 @@ package com.davyd.service;
 
 import com.davyd.dto.response.UserResponse;
 import com.davyd.exception.EmailAlreadyExistsException;
+import com.davyd.exception.IdempotencyKeyConflictException;
 import com.davyd.exception.UserDeletionNotAllowedException;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.mapper.UserMapper;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.UserRepository;
+import com.davyd.util.Validation;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 
@@ -65,7 +68,11 @@ public class UserService {
         try {
             return UserMapper.toResponse(userRepository.saveAndFlush(new User(name, email)));
         } catch (DataIntegrityViolationException e){
-            throw new EmailAlreadyExistsException(email);
+            if (Validation.isConstraintViolation(e, "uk_users_email")){
+                throw new EmailAlreadyExistsException(email);
+            }
+
+            throw e;
         }
     }
 
@@ -90,7 +97,11 @@ public class UserService {
             userRepository.delete(user);
             userRepository.flush();
         } catch (DataIntegrityViolationException e){
-            throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
+            if (Validation.isConstraintViolation(e, "fk_bank_accounts_owner")){
+                throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
+            }
+
+            throw e;
         }
     }
 

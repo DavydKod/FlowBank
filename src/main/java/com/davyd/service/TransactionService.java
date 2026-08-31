@@ -158,15 +158,8 @@ public class TransactionService {
             return TransactionMapper
                     .toResponse(transactionRepository.saveAndFlush(transaction));
         } catch (DataIntegrityViolationException e){
-            Throwable cause = e;
-
-            while (cause != null){
-                if (cause instanceof ConstraintViolationException cve
-                        && "uk_transactions_idempotency_key".equals(cve.getConstraintName())){
-                    throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
-                }
-
-                cause = cause.getCause();
+            if (Validation.isConstraintViolation(e, "uk_transactions_idempotency_key")){
+                throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
             }
 
             throw e;
@@ -207,15 +200,8 @@ public class TransactionService {
         try {
             return TransactionMapper.toResponse(transactionRepository.saveAndFlush(transaction));
         } catch (DataIntegrityViolationException e){
-            Throwable cause = e;
-
-            while (cause != null){
-                if (cause instanceof ConstraintViolationException cve
-                        && "uk_transactions_idempotency_key".equals(cve.getConstraintName())){
-                    throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
-                }
-
-                cause = cause.getCause();
+            if (Validation.isConstraintViolation(e, "uk_transactions_idempotency_key")){
+                throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
             }
 
             throw e;
@@ -256,15 +242,8 @@ public class TransactionService {
         try {
             return TransactionMapper.toResponse(transactionRepository.saveAndFlush(transaction));
         } catch (DataIntegrityViolationException e){
-            Throwable cause = e;
-
-            while (cause != null){
-                if (cause instanceof ConstraintViolationException cve
-                        && "uk_transactions_idempotency_key".equals(cve.getConstraintName())){
-                    throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
-                }
-
-                cause = cause.getCause();
+            if (Validation.isConstraintViolation(e, "uk_transactions_idempotency_key")){
+                throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");
             }
 
             throw e;

@@ -1,5 +1,8 @@
 package com.davyd.util;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.math.BigDecimal;
 import java.util.regex.Pattern;
 
@@ -79,5 +82,23 @@ public final class Validation {
         }
 
         return idempotencyKey;
+    }
+
+    public static boolean isConstraintViolation(
+            DataIntegrityViolationException exception,
+            String constraintName
+    ) {
+        Throwable cause = exception;
+
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException cve
+                    && constraintName.equals(cve.getConstraintName())) {
+                return true;
+            }
+
+            cause = cause.getCause();
+        }
+
+        return false;
     }
 }
