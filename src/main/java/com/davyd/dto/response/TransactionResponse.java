@@ -1,5 +1,6 @@
 package com.davyd.dto.response;
 
+import com.davyd.models.TransactionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -7,6 +8,9 @@ import java.time.LocalDateTime;
 
 @Schema(description = "Details of a completed money transfer")
 public record TransactionResponse(
+        @Schema(description = "Transaction type", example = "TRANSFER")
+        TransactionType type,
+
         @Schema(description = "Transaction ID", example = "1")
         Long id,
 

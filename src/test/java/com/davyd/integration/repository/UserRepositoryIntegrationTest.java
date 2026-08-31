@@ -32,9 +32,8 @@ public class UserRepositoryIntegrationTest {
     private User createUserForTest(){
         String email = "dav@gmail.com";
         String name = "Davyd";
-        User user = new User(name, email);
 
-        return user;
+        return new User(name, email);
     }
 
     @Test

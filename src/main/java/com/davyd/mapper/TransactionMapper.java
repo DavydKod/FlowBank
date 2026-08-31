@@ -8,6 +8,7 @@ public class TransactionMapper {
 
     public static TransactionResponse toResponse(Transaction transaction){
         return new TransactionResponse(
+                transaction.getType(),
                 transaction.getId(),
                 transaction.getFromAccount() != null
                         ? transaction.getFromAccount().getId()
