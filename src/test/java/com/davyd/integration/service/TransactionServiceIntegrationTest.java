@@ -1,5 +1,7 @@
 package com.davyd.integration.service;
 
+import com.davyd.dto.TransactionDirection;
+import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.response.TransactionResponse;
 import com.davyd.dto.response.UserResponse;
@@ -9,6 +11,8 @@ import com.davyd.service.BankAccountService;
 import com.davyd.service.TransactionService;
 import com.davyd.service.UserService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -626,6 +631,417 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
         );
     }
 
+    @Test
+    void shouldApplyDailyLimitToBothTransfersAndWithdrawals() {
+        UserResponse user1 = userService.createUser(
+                "Davyd",
+                "davyd@gmail.com"
+        );
 
-    //getTransactionsByAccount tests
+        UserResponse user2 = userService.createUser(
+                "Max",
+                "max@gmail.com"
+        );
+
+        BankAccountResponse account1 =
+                bankAccountService.createAccount(user1.id());
+
+        BankAccountResponse account2 =
+                bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                account1.id(),
+                new BigDecimal("1200.00"),
+                "deposit-key"
+        );
+
+        transactionService.withdraw(
+                account1.id(),
+                new BigDecimal("600.00"),
+                "withdraw-key"
+        );
+
+        assertThrows(
+                DailyTransferLimitExceededException.class,
+                () -> transactionService.transfer(
+                        account1.id(),
+                        account2.id(),
+                        new BigDecimal("450.00"),
+                        "transfer-key"
+                )
+        );
+    }
+
+    @Test
+    void shouldNotCountDepositsTowardsDailyTransferLimit() {
+        UserResponse user1 = userService.createUser(
+                "Davyd",
+                "davyd@gmail.com"
+        );
+
+        UserResponse user2 = userService.createUser(
+                "Max",
+                "max@gmail.com"
+        );
+
+        BankAccountResponse account1 =
+                bankAccountService.createAccount(user1.id());
+
+        BankAccountResponse account2 =
+                bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                account1.id(),
+                new BigDecimal("1500.00"),
+                "deposit-key"
+        );
+
+        assertDoesNotThrow(() ->
+                transactionService.transfer(
+                        account1.id(),
+                        account2.id(),
+                        new BigDecimal("800.00"),
+                        "transfer-key"
+                )
+        );
+    }
+
+    @Test
+    void shouldGetTransactionsFromAccount() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max@gmail.com");
+
+        BankAccountResponse account1 = bankAccountService.createAccount(user1.id());
+        BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                account1.id(),
+                new BigDecimal("1000.00"),
+                "deposit-key"
+        );
+
+        transactionService.transfer(
+                account1.id(),
+                account2.id(),
+                new BigDecimal("100.00"),
+                "transfer-key-1"
+        );
+
+        transactionService.transfer(
+                account1.id(),
+                account2.id(),
+                new BigDecimal("200.00"),
+                "transfer-key-2"
+        );
+
+        transactionService.transfer(
+                account2.id(),
+                account1.id(),
+                new BigDecimal("50.00"),
+                "transfer-key-3"
+        );
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<TransactionResponse> result =
+                transactionService.getTransactionsByAccount(
+                        account1.id(),
+                        TransactionDirection.FROM,
+                        TransactionSortingMethod.CREATED_AT_DESC,
+                        pageable
+                );
+
+        assertEquals(2, result.getTotalElements());
+
+        assertTrue(result.getContent().stream()
+                .allMatch(transaction ->
+                        Objects.equals(
+                                transaction.fromAccountId(),
+                                account1.id()
+                        )
+                ));
+    }
+
+    @Test
+    void shouldGetTransactionsToAccount() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max@gmail.com");
+
+        BankAccountResponse account1 = bankAccountService.createAccount(user1.id());
+        BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                account1.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-1"
+        );
+
+        transactionService.deposit(
+                account2.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-2"
+        );
+
+        transactionService.transfer(
+                account1.id(),
+                account2.id(),
+                new BigDecimal("100.00"),
+                "transfer-key-1"
+        );
+
+        transactionService.transfer(
+                account2.id(),
+                account1.id(),
+                new BigDecimal("200.00"),
+                "transfer-key-2"
+        );
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<TransactionResponse> result =
+                transactionService.getTransactionsByAccount(
+                        account1.id(),
+                        TransactionDirection.TO,
+                        TransactionSortingMethod.CREATED_AT_DESC,
+                        pageable
+                );
+
+        assertEquals(2, result.getTotalElements());
+
+        assertTrue(result.getContent().stream()
+                .allMatch(transaction ->
+                        Objects.equals(
+                                transaction.toAccountId(),
+                                account1.id()
+                        )
+                ));
+    }
+
+    @Test
+    void shouldGetTransactionsFromAndToAccountWhenDirectionIsNull() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max@gmail.com");
+
+        BankAccountResponse account1 = bankAccountService.createAccount(user1.id());
+        BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                account1.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-1"
+        );
+
+        transactionService.deposit(
+                account2.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-2"
+        );
+
+        transactionService.transfer(
+                account1.id(),
+                account2.id(),
+                new BigDecimal("100.00"),
+                "transfer-key-1"
+        );
+
+        transactionService.transfer(
+                account2.id(),
+                account1.id(),
+                new BigDecimal("200.00"),
+                "transfer-key-2"
+        );
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<TransactionResponse> result =
+                transactionService.getTransactionsByAccount(
+                        account1.id(),
+                        null,
+                        TransactionSortingMethod.CREATED_AT_DESC,
+                        pageable
+                );
+
+        assertEquals(3, result.getTotalElements());
+
+        assertTrue(result.getContent().stream()
+                .allMatch(transaction ->
+                        Objects.equals(transaction.fromAccountId(), account1.id())
+                                || Objects.equals(transaction.toAccountId(), account1.id())
+                ));
+    }
+
+    @Test
+    void shouldPaginateTransactionsByAccount() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max@gmail.com");
+
+        BankAccountResponse account1 = bankAccountService.createAccount(user1.id());
+        BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                account1.id(),
+                new BigDecimal("1000.00"),
+                "deposit-key"
+        );
+
+        transactionService.transfer(
+                account1.id(), account2.id(),
+                new BigDecimal("100.00"), "key-1"
+        );
+
+        transactionService.transfer(
+                account1.id(), account2.id(),
+                new BigDecimal("100.00"), "key-2"
+        );
+
+        transactionService.transfer(
+                account1.id(), account2.id(),
+                new BigDecimal("100.00"), "key-3"
+        );
+
+        Pageable pageable = PageRequest.of(0, 2);
+
+        Page<TransactionResponse> result =
+                transactionService.getTransactionsByAccount(
+                        account1.id(),
+                        TransactionDirection.FROM,
+                        TransactionSortingMethod.CREATED_AT_DESC,
+                        pageable
+                );
+
+        assertEquals(3, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+        assertEquals(2, result.getTotalPages());
+        assertEquals(0, result.getNumber());
+    }
+
+    @Test
+    void shouldThrowWhenGettingTransactionsForNonExistingAccount() {
+        Pageable pageable = PageRequest.of(0, 10);
+
+        assertThrows(
+                BankAccountNotFoundException.class,
+                () -> transactionService.getTransactionsByAccount(
+                        999999L,
+                        TransactionDirection.FROM,
+                        TransactionSortingMethod.CREATED_AT_DESC,
+                        pageable
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @EnumSource(TransactionSortingMethod.class)
+    void shouldSortTransactionsByAccount(TransactionSortingMethod sortingMethod) {
+        UserResponse user1 =
+                userService.createUser("Davyd", "davyd@gmail.com");
+
+        UserResponse user2 =
+                userService.createUser("Max", "max@gmail.com");
+
+        BankAccountResponse account1 =
+                bankAccountService.createAccount(user1.id());
+
+        BankAccountResponse account2 =
+                bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                account1.id(),
+                new BigDecimal("1000.00"),
+                "deposit-key"
+        );
+
+        transactionService.transfer(
+                account1.id(),
+                account2.id(),
+                new BigDecimal("300.00"),
+                "key-1"
+        );
+
+        transactionService.transfer(
+                account1.id(),
+                account2.id(),
+                new BigDecimal("100.00"),
+                "key-2"
+        );
+
+        transactionService.transfer(
+                account1.id(),
+                account2.id(),
+                new BigDecimal("200.00"),
+                "key-3"
+        );
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<TransactionResponse> result =
+                transactionService.getTransactionsByAccount(
+                        account1.id(),
+                        TransactionDirection.FROM,
+                        sortingMethod,
+                        pageable
+                );
+
+        List<TransactionResponse> transactions = result.getContent();
+
+        assertEquals(3, transactions.size());
+
+        switch (sortingMethod) {
+            case AMOUNT_ASC -> assertEquals(
+                    List.of(
+                            new BigDecimal("100.00"),
+                            new BigDecimal("200.00"),
+                            new BigDecimal("300.00")
+                    ),
+                    transactions.stream()
+                            .map(TransactionResponse::amount)
+                            .toList()
+            );
+
+            case AMOUNT_DESC -> assertEquals(
+                    List.of(
+                            new BigDecimal("300.00"),
+                            new BigDecimal("200.00"),
+                            new BigDecimal("100.00")
+                    ),
+                    transactions.stream()
+                            .map(TransactionResponse::amount)
+                            .toList()
+            );
+
+            case CREATED_AT_ASC -> assertTrue(
+                    isSortedByCreatedAtAscending(transactions)
+            );
+
+            case CREATED_AT_DESC -> assertTrue(
+                    isSortedByCreatedAtDescending(transactions)
+            );
+        }
+    }
+
+    private boolean isSortedByCreatedAtAscending(
+            List<TransactionResponse> transactions
+    ) {
+        for (int i = 1; i < transactions.size(); i++) {
+            if (transactions.get(i - 1).createdAt()
+                    .isAfter(transactions.get(i).createdAt())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean isSortedByCreatedAtDescending(
+            List<TransactionResponse> transactions
+    ) {
+        for (int i = 1; i < transactions.size(); i++) {
+            if (transactions.get(i - 1).createdAt()
+                    .isBefore(transactions.get(i).createdAt())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
