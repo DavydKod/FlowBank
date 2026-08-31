@@ -94,4 +94,16 @@ public class Transaction {
     public String getIdempotencyKey() {
         return idempotencyKey;
     }
+
+    public TransactionType getType(){
+        if (fromAccount != null && toAccount != null){
+            return TransactionType.TRANSFER;
+        }
+
+        if (fromAccount == null){
+            return TransactionType.DEPOSIT;
+        }
+
+        return TransactionType.WITHDRAWAL;
+    }
 }

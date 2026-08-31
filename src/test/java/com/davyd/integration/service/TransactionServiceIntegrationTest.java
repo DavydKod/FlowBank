@@ -3,10 +3,8 @@ package com.davyd.integration.service;
 import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.response.TransactionResponse;
 import com.davyd.dto.response.UserResponse;
-import com.davyd.exception.BankAccountNotFoundException;
-import com.davyd.exception.IdempotencyKeyConflictException;
-import com.davyd.exception.InsufficientFundsException;
-import com.davyd.exception.TransactionNotFoundException;
+import com.davyd.exception.*;
+import com.davyd.models.TransactionType;
 import com.davyd.service.BankAccountService;
 import com.davyd.service.TransactionService;
 import com.davyd.service.UserService;
@@ -46,6 +44,7 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
 
         assertNotNull(transactionResponse.id());
         assertNull(transactionResponse.fromAccountId());
+        assertEquals(TransactionType.DEPOSIT, transactionResponse.type());
         assertEquals(bankAccountResponse.ownerId(), transactionResponse.toAccountId());
         assertEquals(new BigDecimal("100.00"), transactionResponse.amount());
 
@@ -62,10 +61,12 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
 
         transactionService.deposit(bankAccountResponse.id(), new BigDecimal("100.00"), "key");
 
-        transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("60.00"), "key2");
+        TransactionResponse transactionResponse =
+                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("60.00"), "key2");
 
         BankAccountResponse resultAccount = bankAccountService.getAccount(bankAccountResponse.id());
 
+        assertEquals(TransactionType.WITHDRAWAL, transactionResponse.type());
         assertEquals(new BigDecimal("40.00"), resultAccount.balance());
     }
 
@@ -294,7 +295,337 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
         assertEquals(transactionResponse.id(), sameTransactionResponse.id());
     }
 
+    @Test
+    void shouldTransferMoneyBetweenAccounts() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd1@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max1@gmail.com");
 
-    //transfer tests
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-1"
+        );
+
+        TransactionResponse transaction = transactionService.transfer(
+                fromAccount.id(),
+                toAccount.id(),
+                new BigDecimal("150.00"),
+                "transfer-key-1"
+        );
+
+        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.id());
+        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.id());
+
+        assertEquals(new BigDecimal("350.00"), updatedFrom.balance());
+        assertEquals(new BigDecimal("150.00"), updatedTo.balance());
+
+        assertEquals(TransactionType.TRANSFER, transaction.type());
+        assertEquals(fromAccount.id(), transaction.fromAccountId());
+        assertEquals(toAccount.id(), transaction.toAccountId());
+        assertEquals(new BigDecimal("150.00"), transaction.amount());
+    }
+
+    @Test
+    void shouldThrowWhenTransferringToSameAccount() {
+        UserResponse user = userService.createUser("Davyd", "davyd2@gmail.com");
+        BankAccountResponse account = bankAccountService.createAccount(user.id());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> transactionService.transfer(
+                        account.id(),
+                        account.id(),
+                        new BigDecimal("100.00"),
+                        "transfer-key-2"
+                )
+        );
+    }
+
+    @Test
+    void shouldThrowWhenFromAccountDoesNotExist() {
+        UserResponse user = userService.createUser("Davyd", "davyd3@gmail.com");
+        BankAccountResponse toAccount = bankAccountService.createAccount(user.id());
+
+        long nonExistingAccountId = 999999L;
+
+        assertThrows(
+                BankAccountNotFoundException.class,
+                () -> transactionService.transfer(
+                        nonExistingAccountId,
+                        toAccount.id(),
+                        new BigDecimal("100.00"),
+                        "transfer-key-3"
+                )
+        );
+    }
+
+    @Test
+    void shouldThrowWhenToAccountDoesNotExist() {
+        UserResponse user = userService.createUser("Davyd", "davyd4@gmail.com");
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-4"
+        );
+
+        long nonExistingAccountId = 999999L;
+
+        assertThrows(
+                BankAccountNotFoundException.class,
+                () -> transactionService.transfer(
+                        fromAccount.id(),
+                        nonExistingAccountId,
+                        new BigDecimal("100.00"),
+                        "transfer-key-4"
+                )
+        );
+    }
+
+    @Test
+    void shouldThrowWhenFromAccountHasInsufficientFunds() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd5@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max5@gmail.com");
+
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("50.00"),
+                "deposit-key-5"
+        );
+
+        assertThrows(
+                InsufficientFundsException.class,
+                () -> transactionService.transfer(
+                        fromAccount.id(),
+                        toAccount.id(),
+                        new BigDecimal("100.00"),
+                        "transfer-key-5"
+                )
+        );
+    }
+
+    @Test
+    void shouldNotChangeBalancesWhenTransferFailsDueToInsufficientFunds() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd6@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max6@gmail.com");
+
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("50.00"),
+                "deposit-key-6"
+        );
+
+        assertThrows(
+                InsufficientFundsException.class,
+                () -> transactionService.transfer(
+                        fromAccount.id(),
+                        toAccount.id(),
+                        new BigDecimal("100.00"),
+                        "transfer-key-6"
+                )
+        );
+
+        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.id());
+        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.id());
+
+        assertEquals(new BigDecimal("50.00"), updatedFrom.balance());
+        assertEquals(new BigDecimal("0.00"), updatedTo.balance());
+    }
+
+    @Test
+    void shouldThrowWhenFromAccountIsBlocked() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd7@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max7@gmail.com");
+
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-7"
+        );
+
+        bankAccountService.blockAccount(fromAccount.id());
+
+        assertThrows(
+                InvalidAccountStatusException.class,
+                () -> transactionService.transfer(
+                        fromAccount.id(),
+                        toAccount.id(),
+                        new BigDecimal("100.00"),
+                        "transfer-key-7"
+                )
+        );
+    }
+
+    @Test
+    void shouldThrowWhenToAccountIsBlocked() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd8@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max8@gmail.com");
+
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-8"
+        );
+
+        bankAccountService.blockAccount(toAccount.id());
+
+        assertThrows(
+                InvalidAccountStatusException.class,
+                () -> transactionService.transfer(
+                        fromAccount.id(),
+                        toAccount.id(),
+                        new BigDecimal("100.00"),
+                        "transfer-key-8"
+                )
+        );
+    }
+
+    @Test
+    void shouldThrowWhenDailyTransferLimitIsExceeded() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd9@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max9@gmail.com");
+
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("5000.00"),
+                "deposit-key-9"
+        );
+
+        // Тут залежить від твого API встановлення dailyTransferLimit.
+        // Встановлюєш, наприклад, 1000.00.
+
+        transactionService.transfer(
+                fromAccount.id(),
+                toAccount.id(),
+                new BigDecimal("800.00"),
+                "transfer-key-9a"
+        );
+
+        assertThrows(
+                DailyTransferLimitExceededException.class,
+                () -> transactionService.transfer(
+                        fromAccount.id(),
+                        toAccount.id(),
+                        new BigDecimal("300.00"),
+                        "transfer-key-9b"
+                )
+        );
+    }
+
+    @Test
+    void shouldReturnExistingTransactionForSameIdempotencyKey() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd10@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max10@gmail.com");
+
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-10"
+        );
+
+        TransactionResponse first = transactionService.transfer(
+                fromAccount.id(),
+                toAccount.id(),
+                new BigDecimal("100.00"),
+                "transfer-key-10"
+        );
+
+        TransactionResponse second = transactionService.transfer(
+                fromAccount.id(),
+                toAccount.id(),
+                new BigDecimal("100.00"),
+                "transfer-key-10"
+        );
+
+        assertEquals(first.id(), second.id());
+
+        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.id());
+        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.id());
+
+        assertEquals(new BigDecimal("400.00"), updatedFrom.balance());
+        assertEquals(new BigDecimal("100.00"), updatedTo.balance());
+    }
+
+    @Test
+    void shouldThrowWhenIdempotencyKeyIsReusedForDifferentTransfer() {
+        UserResponse user1 = userService.createUser("Davyd", "davyd11@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max11@gmail.com");
+
+        BankAccountResponse fromAccount = bankAccountService.createAccount(user1.id());
+        BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
+
+        transactionService.deposit(
+                fromAccount.id(),
+                new BigDecimal("500.00"),
+                "deposit-key-11"
+        );
+
+        transactionService.transfer(
+                fromAccount.id(),
+                toAccount.id(),
+                new BigDecimal("100.00"),
+                "same-key-11"
+        );
+
+        assertThrows(
+                IdempotencyKeyConflictException.class,
+                () -> transactionService.transfer(
+                        fromAccount.id(),
+                        toAccount.id(),
+                        new BigDecimal("200.00"),
+                        "same-key-11"
+                )
+        );
+    }
+
+    @Test
+    void shouldRejectInvalidTransferAmount() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> transactionService.transfer(
+                        1L,
+                        2L,
+                        new BigDecimal("-100.00"),
+                        "valid-key"
+                )
+        );
+    }
+
+    @Test
+    void shouldRejectInvalidIdempotencyKey() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> transactionService.transfer(
+                        1L,
+                        2L,
+                        new BigDecimal("100.00"),
+                        "   "
+                )
+        );
+    }
+
+
     //getTransactionsByAccount tests
 }
