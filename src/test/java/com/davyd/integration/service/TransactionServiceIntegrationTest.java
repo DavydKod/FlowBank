@@ -50,7 +50,7 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
         assertNotNull(transactionResponse.id());
         assertNull(transactionResponse.fromAccountId());
         assertEquals(TransactionType.DEPOSIT, transactionResponse.type());
-        assertEquals(bankAccountResponse.ownerId(), transactionResponse.toAccountId());
+        assertEquals(bankAccountResponse.id(), transactionResponse.toAccountId());
         assertEquals(new BigDecimal("100.00"), transactionResponse.amount());
 
         BankAccountResponse resultAccount = bankAccountService.getAccount(bankAccountResponse.id());
