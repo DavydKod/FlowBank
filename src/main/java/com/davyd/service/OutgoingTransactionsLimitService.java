@@ -11,11 +11,11 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
-public class TransferLimitService {
+public class OutgoingTransactionsLimitService {
     private final TransactionRepository transactionRepository;
     private final Clock clock;
 
-    public TransferLimitService(TransactionRepository transactionRepository, Clock clock){
+    public OutgoingTransactionsLimitService(TransactionRepository transactionRepository, Clock clock){
         this.transactionRepository = transactionRepository;
         this.clock = clock;
     }
@@ -37,7 +37,7 @@ public class TransferLimitService {
         amount = Validation.validateMoney(amount);
 
         if (amount.add(transferredAmountOfDay(account))
-                .compareTo(account.getDailyTransferLimit()) > 0){
+                .compareTo(account.getDailyOutgoingLimit()) > 0){
             throw new DailyTransferLimitExceededException("Impossible to transfer money. " +
                     "Daily transfer limit reached");
         }

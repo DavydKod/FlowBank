@@ -25,14 +25,15 @@ public class BankAccount {
     @Column(nullable = false)
     private AccountStatus status;
 
-    @Column(name = "daily_transfer_limit", nullable = false, precision = 19, scale = 2)
-    private BigDecimal dailyTransferLimit;
+    @Column(name = "daily_outgoing_limit", nullable = false, precision = 19, scale = 2)
+    private BigDecimal dailyOutgoingLimit;
 
     @Version
     @Column(nullable = false)
     private Long version;
 
-    private static final BigDecimal DEFAULT_DAILY_TRANSFER_LIMIT = new BigDecimal(1000);
+
+    public static final BigDecimal DEFAULT_DAILY_OUTGOING_LIMIT = new BigDecimal("1000.00");
 
     protected BankAccount() {
     }
@@ -41,7 +42,7 @@ public class BankAccount {
         this.owner = owner;
         this.balance = BigDecimal.ZERO;
         this.status = AccountStatus.ACTIVE;
-        this.dailyTransferLimit = DEFAULT_DAILY_TRANSFER_LIMIT;
+        this.dailyOutgoingLimit = DEFAULT_DAILY_OUTGOING_LIMIT;
     }
 
     public Long getId() {
@@ -56,8 +57,8 @@ public class BankAccount {
         return balance;
     }
 
-    public BigDecimal getDailyTransferLimit() {
-        return dailyTransferLimit;
+    public BigDecimal getDailyOutgoingLimit() {
+        return dailyOutgoingLimit;
     }
 
     public void deposit(BigDecimal amount) {
@@ -110,5 +111,15 @@ public class BankAccount {
         }
 
         status = AccountStatus.CLOSED;
+    }
+
+    public void changeDailyOutgoingLimit(BigDecimal newLimit){
+        Validation.validateMoney(newLimit);
+
+        if (status != AccountStatus.ACTIVE){
+            throw new InvalidAccountStatusException("Account must be active to change daily outgoing limit");
+        }
+
+        dailyOutgoingLimit = newLimit;
     }
 }

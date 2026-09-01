@@ -1,0 +1,2 @@
+ALTER TABLE bank_accounts
+RENAME COLUMN daily_transfer_limit TO daily_outgoing_limit;

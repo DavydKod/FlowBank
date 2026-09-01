@@ -6,6 +6,7 @@ import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.response.TransactionResponse;
 import com.davyd.dto.response.UserResponse;
 import com.davyd.exception.*;
+import com.davyd.models.BankAccount;
 import com.davyd.models.TransactionType;
 import com.davyd.service.BankAccountService;
 import com.davyd.service.TransactionService;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -511,17 +513,14 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
 
         transactionService.deposit(
                 fromAccount.id(),
-                new BigDecimal("5000.00"),
+                new BigDecimal("1200.00"),
                 "deposit-key-9"
         );
-
-        // Тут залежить від твого API встановлення dailyTransferLimit.
-        // Встановлюєш, наприклад, 1000.00.
 
         transactionService.transfer(
                 fromAccount.id(),
                 toAccount.id(),
-                new BigDecimal("800.00"),
+                new BigDecimal("500.00"),
                 "transfer-key-9a"
         );
 
@@ -530,7 +529,7 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
                 () -> transactionService.transfer(
                         fromAccount.id(),
                         toAccount.id(),
-                        new BigDecimal("300.00"),
+                        new BigDecimal("600.00"),
                         "transfer-key-9b"
                 )
         );
@@ -670,6 +669,15 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
                         "transfer-key"
                 )
         );
+
+        assertThrows(
+                DailyTransferLimitExceededException.class,
+                () -> transactionService.withdraw(
+                        account1.id(),
+                        new BigDecimal("450.00"),
+                        "withdrawal-key"
+                )
+        );
     }
 
     @Test
@@ -692,7 +700,7 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
 
         transactionService.deposit(
                 account1.id(),
-                new BigDecimal("1500.00"),
+                new BigDecimal("800"),
                 "deposit-key"
         );
 
@@ -700,7 +708,7 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
                 transactionService.transfer(
                         account1.id(),
                         account2.id(),
-                        new BigDecimal("800.00"),
+                        new BigDecimal("700.00"),
                         "transfer-key"
                 )
         );
@@ -1043,5 +1051,20 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
         }
 
         return true;
+    }
+
+    @Test
+    void shouldAllowTransactionAfterDailyOutgoingLimitChange(){
+        UserResponse userResponse = userService.createUser("Davyd", "davyd@gmail.com");
+
+        BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
+
+        transactionService.deposit(bankAccountResponse.id(), new BigDecimal("2000"), "key1");
+
+        transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("900.00"), "key2");
+
+        bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("1600.00"));
+
+        transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("400"), "key3");
     }
 }

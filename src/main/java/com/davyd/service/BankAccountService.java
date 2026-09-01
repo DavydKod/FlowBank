@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 @Service
 @Transactional(readOnly = true)
 public class BankAccountService {
@@ -92,5 +94,14 @@ public class BankAccountService {
         BankAccount account = getAccountEntity(accountId);
         account.closeAccount();
         return BankAccountMapper.toResponse(account);
+    }
+
+    @Transactional
+    public BankAccountResponse changeDailyOutgoingLimit(long accountId, BigDecimal newLimit){
+        Validation.validateMoney(newLimit);
+
+        BankAccount bankAccount = getAccountEntity(accountId);
+        bankAccount.changeDailyOutgoingLimit(newLimit);
+        return BankAccountMapper.toResponse(bankAccount);
     }
 }

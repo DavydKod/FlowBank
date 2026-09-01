@@ -5,17 +5,14 @@ import com.davyd.dto.TransactionSortingMethod;
 import com.davyd.dto.response.TransactionResponse;
 import com.davyd.exception.BankAccountNotFoundException;
 import com.davyd.exception.IdempotencyKeyConflictException;
-import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.TransactionNotFoundException;
 import com.davyd.mapper.TransactionMapper;
-import com.davyd.models.AccountStatus;
 import com.davyd.models.BankAccount;
 import com.davyd.models.Transaction;
 import com.davyd.models.TransactionType;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import com.davyd.util.Validation;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,13 +32,13 @@ import java.util.Optional;
 public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final BankAccountRepository bankAccountRepository;
-    private final TransferLimitService transferLimitService;
+    private final OutgoingTransactionsLimitService transferLimitService;
     private final Clock clock;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             BankAccountRepository bankAccountRepository,
-            TransferLimitService transferLimitService,
+            OutgoingTransactionsLimitService transferLimitService,
             Clock clock
     ) {
         this.transactionRepository = transactionRepository;
@@ -185,6 +182,8 @@ public class TransactionService {
         if (existingTransactionWithKey.isPresent()){
             return handleExisting(existingTransactionWithKey.get(), fromAccountId, null, amount);
         }
+
+        transferLimitService.validateDailyTransferLimit(bankAccount, amount);
 
         bankAccount.withdraw(amount);
 

@@ -11,6 +11,7 @@ public class BankAccountMapper {
                 bankAccount.getId(),
                 bankAccount.getOwner().getId(),
                 bankAccount.getBalance(),
+                bankAccount.getDailyOutgoingLimit(),
                 bankAccount.getStatus()
         );
     }
