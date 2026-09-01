@@ -3,6 +3,7 @@ package com.davyd.integration.service;
 import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.response.UserResponse;
 import com.davyd.exception.BankAccountNotFoundException;
+import com.davyd.exception.InvalidAccountStatusException;
 import com.davyd.exception.UserDeletionNotAllowedException;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.AccountStatus;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -256,5 +258,46 @@ public class BankAccountServiceIntegrationTest extends BaseServiceIntegrationTes
         assertEquals(2, bankAccountsResponse.getTotalPages());
         assertEquals(0, bankAccountsResponse.getNumber());
         assertTrue(bankAccountsResponse.hasNext());
+    }
+
+    @Test
+    void shouldThrowWhenChangingDailyOutgoingLimitForNonExistentBankAccount(){
+        assertThrows(BankAccountNotFoundException.class, () ->
+                bankAccountService.changeDailyOutgoingLimit(1L, new BigDecimal("1000.00")));
+    }
+
+    @Test
+    void shouldChangeDailyOutgoingLimit(){
+        String name = "Davyd";
+        String email = "davyd@gmail.com";
+        UserResponse userResponse = userService.createUser(name, email);
+
+        BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
+
+        assertEquals(BankAccount.DEFAULT_DAILY_OUTGOING_LIMIT, bankAccountResponse.dailyOutgoingLimit());
+
+        BankAccountResponse response = bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("2550.00"));
+
+        assertEquals(new BigDecimal("2550.00"), response.dailyOutgoingLimit());
+    }
+
+    @Test
+    void shouldThrowWhenChangingDailyOutgoingLimitForNotActiveBankAccount(){
+        String name = "Davyd";
+        String email = "davyd@gmail.com";
+        UserResponse userResponse = userService.createUser(name, email);
+
+        BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
+
+        bankAccountService.blockAccount(bankAccountResponse.id());
+
+        assertThrows(InvalidAccountStatusException.class, () ->
+                bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("1300.00")));
+
+        bankAccountService.closeAccount(bankAccountResponse.id());
+
+        assertThrows(InvalidAccountStatusException.class, () ->
+                bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("1340.00")));
+
     }
 }

@@ -8,6 +8,7 @@ public record BankAccountResponse(
         Long id,
         Long ownerId,
         BigDecimal balance,
+        BigDecimal dailyOutgoingLimit,
         AccountStatus status
 ) {
 }

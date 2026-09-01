@@ -86,8 +86,8 @@ class TransferLimitServiceTest {
 
         BankAccount account = new BankAccount(user);
 
-        BigDecimal alreadyTransferred = new BigDecimal("850.00");
-        BigDecimal newTransferAmount = new BigDecimal("150.00");
+        BigDecimal alreadyTransferred = new BigDecimal("750.00");
+        BigDecimal newTransferAmount = new BigDecimal("100.00");
 
         when(
                 transactionRepository.getTotalSentSince(

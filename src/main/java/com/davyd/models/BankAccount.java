@@ -32,6 +32,7 @@ public class BankAccount {
     @Column(nullable = false)
     private Long version;
 
+
     public static final BigDecimal DEFAULT_DAILY_OUTGOING_LIMIT = new BigDecimal("1000.00");
 
     protected BankAccount() {
