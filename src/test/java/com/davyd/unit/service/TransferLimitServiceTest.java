@@ -4,8 +4,7 @@ import com.davyd.exception.DailyTransferLimitExceededException;
 import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.TransactionRepository;
-import com.davyd.service.TransferLimitService;
-import org.junit.jupiter.api.BeforeEach;
+import com.davyd.service.OutgoingTransactionsLimitService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,7 +33,7 @@ class TransferLimitServiceTest {
             ZoneOffset.UTC);
 
     @InjectMocks
-    private TransferLimitService transferLimitService;
+    private OutgoingTransactionsLimitService transferLimitService;
 
     @Test
     void shouldRejectTransferWhenDailyLimitWouldBeExceeded() {

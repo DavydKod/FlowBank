@@ -11,11 +11,11 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Service
-public class TransferLimitService {
+public class OutgoingTransactionsLimitService {
     private final TransactionRepository transactionRepository;
     private final Clock clock;
 
-    public TransferLimitService(TransactionRepository transactionRepository, Clock clock){
+    public OutgoingTransactionsLimitService(TransactionRepository transactionRepository, Clock clock){
         this.transactionRepository = transactionRepository;
         this.clock = clock;
     }

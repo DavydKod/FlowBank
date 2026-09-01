@@ -12,7 +12,7 @@ import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
 import com.davyd.repository.TransactionRepository;
 import com.davyd.service.TransactionService;
-import com.davyd.service.TransferLimitService;
+import com.davyd.service.OutgoingTransactionsLimitService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,7 +42,7 @@ public class TransactionServiceTest {
     private BankAccountRepository bankAccountRepository;
 
     @Mock
-    private TransferLimitService transferLimitService;
+    private OutgoingTransactionsLimitService transferLimitService;
 
     @Spy
     private Clock clock = Clock.fixed(
