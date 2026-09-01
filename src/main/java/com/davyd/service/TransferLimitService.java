@@ -37,7 +37,7 @@ public class TransferLimitService {
         amount = Validation.validateMoney(amount);
 
         if (amount.add(transferredAmountOfDay(account))
-                .compareTo(account.getDailyTransferLimit()) > 0){
+                .compareTo(account.getDailyOutgoingLimit()) > 0){
             throw new DailyTransferLimitExceededException("Impossible to transfer money. " +
                     "Daily transfer limit reached");
         }

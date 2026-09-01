@@ -277,4 +277,41 @@ class BankAccountTest {
         assertThrows(IllegalArgumentException.class, () ->
                 account.deposit(BigDecimal.valueOf(100000000000000000L)));
     }
+
+    @Test
+    void shouldThrowWhenIncorrectBigDecimalDuringDailyOutgoingLimitChange(){
+        assertThrows(IllegalArgumentException.class, () ->
+                account.changeDailyOutgoingLimit(null));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                account.changeDailyOutgoingLimit(new BigDecimal("-54.87")));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                account.changeDailyOutgoingLimit(new BigDecimal("150.342")));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                account.changeDailyOutgoingLimit(BigDecimal.ZERO));
+    }
+
+    @Test
+    void shouldThrowDuringDailyOutgoingLimitChangeWhenAccountNotActive(){
+        account.blockAccount();
+
+        assertThrows(InvalidAccountStatusException.class, () ->
+                account.changeDailyOutgoingLimit(new BigDecimal("1000.00")));
+
+        account.closeAccount();
+
+        assertThrows(InvalidAccountStatusException.class, () ->
+                account.changeDailyOutgoingLimit(new BigDecimal("1000.00")));
+    }
+
+    @Test
+    void shouldChangeDailyOutgoingLimit(){
+        assertEquals(BankAccount.DEFAULT_DAILY_OUTGOING_LIMIT, account.getDailyOutgoingLimit());
+
+        account.changeDailyOutgoingLimit(new BigDecimal("1500.00"));
+
+        assertEquals(new BigDecimal("1500.00"), account.getDailyOutgoingLimit());
+    }
 }
