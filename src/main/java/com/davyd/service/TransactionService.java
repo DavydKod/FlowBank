@@ -183,6 +183,8 @@ public class TransactionService {
             return handleExisting(existingTransactionWithKey.get(), fromAccountId, null, amount);
         }
 
+        transferLimitService.validateDailyTransferLimit(bankAccount, amount);
+
         bankAccount.withdraw(amount);
 
         Transaction transaction = new Transaction(

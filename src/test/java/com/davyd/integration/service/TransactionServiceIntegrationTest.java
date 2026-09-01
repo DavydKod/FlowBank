@@ -669,6 +669,15 @@ public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTes
                         "transfer-key"
                 )
         );
+
+        assertThrows(
+                DailyTransferLimitExceededException.class,
+                () -> transactionService.withdraw(
+                        account1.id(),
+                        new BigDecimal("450.00"),
+                        "withdrawal-key"
+                )
+        );
     }
 
     @Test
