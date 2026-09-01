@@ -111,4 +111,14 @@ public class BankAccount {
 
         status = AccountStatus.CLOSED;
     }
+
+    public void changeDailyOutgoingLimit(BigDecimal newLimit){
+        Validation.validateMoney(newLimit);
+
+        if (status != AccountStatus.ACTIVE){
+            throw new InvalidAccountStatusException("Account must be active to change daily outgoing limit");
+        }
+
+        dailyOutgoingLimit = newLimit;
+    }
 }

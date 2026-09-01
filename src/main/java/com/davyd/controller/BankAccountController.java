@@ -1,5 +1,6 @@
 package com.davyd.controller;
 
+import com.davyd.dto.request.ChangeBankAccountDailyOutgoingLimitRequest;
 import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.request.CreateBankAccountRequest;
 import com.davyd.service.BankAccountService;
@@ -249,5 +250,20 @@ public class BankAccountController {
         BankAccountResponse accountResponse = bankAccountService.closeAccount(id);
 
         return ResponseEntity.ok(accountResponse);
+    }
+
+    @PatchMapping("/{id}/dailyOutgoingLimit")
+    public ResponseEntity<BankAccountResponse> changeDailyOutgoingLimit(
+
+            @Parameter(description = "Bank account ID", example = "1")
+            @PathVariable
+            @Positive
+            long id,
+
+            @RequestBody
+            @Valid
+            ChangeBankAccountDailyOutgoingLimitRequest request
+    ){
+        return ResponseEntity.ok(bankAccountService.changeDailyOutgoingLimit(id, request.amount()));
     }
 }
