@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.get
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration::class)
-class AnalyticsControllerIntegrationTest {
+class AnalyticsControllerIT {
 
     @Autowired
     lateinit var mockMvc: MockMvc

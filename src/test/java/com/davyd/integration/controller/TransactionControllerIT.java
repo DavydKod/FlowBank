@@ -15,7 +15,6 @@ import com.davyd.repository.UserRepository;
 import com.davyd.service.BankAccountService;
 import com.davyd.service.TransactionService;
 import com.davyd.service.UserService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -34,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-class TransactionControllerIntegrationTest {
+class TransactionControllerIT {
 
     @Autowired
     private MockMvc mockMvc;

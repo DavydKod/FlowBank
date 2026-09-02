@@ -13,7 +13,7 @@ import org.springframework.data.domain.Sort;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserServiceIntegrationTest extends BaseServiceIntegrationTest {
+public class UserServiceIT extends BaseServiceIT {
     @Autowired
     private UserService userService;
 

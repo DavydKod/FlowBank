@@ -10,7 +10,7 @@ import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class AnalyticsServiceIntegrationTest : BaseServiceIntegrationTest() {
+class AnalyticsServiceIT : BaseServiceIT() {
 
     @Autowired
     lateinit var analyticsService: AnalyticsService

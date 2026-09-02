@@ -6,7 +6,6 @@ import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.response.TransactionResponse;
 import com.davyd.dto.response.UserResponse;
 import com.davyd.exception.*;
-import com.davyd.models.BankAccount;
 import com.davyd.models.TransactionType;
 import com.davyd.service.BankAccountService;
 import com.davyd.service.TransactionService;
@@ -21,7 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -29,7 +27,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TransactionServiceIntegrationTest extends BaseServiceIntegrationTest{
+public class TransactionServiceIT extends BaseServiceIT {
     @Autowired
     private UserService userService;
 
