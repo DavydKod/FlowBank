@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Import;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-public abstract class BaseServiceIntegrationTest {
+public abstract class BaseServiceIT {
     @Autowired
     private TransactionRepository transactionRepository;
 

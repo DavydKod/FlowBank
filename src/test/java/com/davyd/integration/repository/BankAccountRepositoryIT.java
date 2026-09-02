@@ -1,6 +1,5 @@
 package com.davyd.integration.repository;
 
-import com.davyd.exception.UserDeletionNotAllowedException;
 import com.davyd.integration.TestcontainersConfiguration;
 import com.davyd.models.AccountStatus;
 import com.davyd.models.BankAccount;
@@ -23,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @Import(TestcontainersConfiguration.class)
-public class BankAccountRepositoryIntegrationTest {
+public class BankAccountRepositoryIT {
     @Autowired
     private BankAccountRepository bankAccountRepository;
 

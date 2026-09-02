@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @Import(TestcontainersConfiguration.class)
-class TransactionRepositoryIntegrationTest {
+class TransactionRepositoryIT {
 
     @Autowired
     private TransactionRepository transactionRepository;

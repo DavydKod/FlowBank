@@ -17,7 +17,7 @@ import java.util.Optional;
 
 @DataJpaTest
 @Import(TestcontainersConfiguration.class)
-public class UserRepositoryIntegrationTest {
+public class UserRepositoryIT {
     @Autowired
     private UserRepository userRepository;
 

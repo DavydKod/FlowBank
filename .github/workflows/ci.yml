@@ -6,7 +6,25 @@ on:
       - main
 
 jobs:
-  test:
+
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+
+        - name: Set up Java
+          uses: actions/setup-java@v4
+          with:
+            distribution: temurin
+            java-version: '25'
+            cache: maven
+
+        - name: Run unit tests
+          run: mvn clean test
+
+  integration-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,5 +38,5 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - name: Run tests
-        run: mvn clean test
+      - name: Run integration tests
+        run: mvn clean verify -DskipUTs

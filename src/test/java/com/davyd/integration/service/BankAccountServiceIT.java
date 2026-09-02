@@ -22,7 +22,7 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class BankAccountServiceIntegrationTest extends BaseServiceIntegrationTest {
+public class BankAccountServiceIT extends BaseServiceIT {
     @Autowired
     private BankAccountService bankAccountService;
 
