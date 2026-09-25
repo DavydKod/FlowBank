@@ -17,6 +17,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // Used for optimistic locking to detect concurrent modifications
     @Version
     @Column(nullable = false)
     private Long version;

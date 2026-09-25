@@ -32,6 +32,8 @@ public class OutgoingTransactionsLimitService {
         return transferredLast24Hours;
     }
 
+    // Daily limit as a 24-h rolling window, not a calendar day
+    // Including external deposits
     public void validateDailyTransferLimit(BankAccount account, BigDecimal amount){
         account = Validation.validateNotNull(account, "Bank account");
         amount = Validation.validateMoney(amount);
