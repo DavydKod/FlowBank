@@ -13,10 +13,12 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Allows fromAccount to be null to determine the transaction as an external deposit
     @ManyToOne(optional = true)
     @JoinColumn(name = "from_account_id", nullable = true)
     private BankAccount fromAccount;
 
+    // Allows toAccount to be null to determine the transaction as an external withdrawal
     @ManyToOne(optional = true)
     @JoinColumn(name = "to_account_id", nullable = true)
     private BankAccount toAccount;

@@ -106,13 +106,16 @@ public class TransactionService {
             throw new IllegalArgumentException("Bank accounts cannot be the same");
         }
 
+        // First check of idempotency key, that is optional
+        // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
+        // transaction when the one with the same key already exists
         Optional<Transaction> existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransactionWithKey.isPresent()){
             return handleExisting(existingTransactionWithKey.get(), fromAccountId, toAccountId, amount);
         }
 
-
+        // Pessimistic locking by order to prevent deadlocks
         long firstId = Math.min(fromAccountId, toAccountId);
         long secondId = Math.max(fromAccountId, toAccountId);
 
@@ -131,6 +134,7 @@ public class TransactionService {
         BankAccount fromAccount = fromAccountId == firstId ? firstAccount : secondAccount;
         BankAccount toAccount = toAccountId == firstId ? firstAccount : secondAccount;
 
+        //Second check of idempotency key that is crucial after the locking
         existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransactionWithKey.isPresent()){
@@ -168,6 +172,10 @@ public class TransactionService {
         amount = Validation.validateMoney(amount);
         idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
 
+
+        // First check of idempotency key, that is optional
+        // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
+        // transaction when the one with the same key already exists
         Optional<Transaction> existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransactionWithKey.isPresent()){
@@ -177,6 +185,8 @@ public class TransactionService {
         BankAccount bankAccount = bankAccountRepository.findByIdForUpdate(fromAccountId)
                 .orElseThrow(() -> new BankAccountNotFoundException(fromAccountId));
 
+
+        //Second check of idempotency key that is crucial after the locking
         existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransactionWithKey.isPresent()){
@@ -212,6 +222,10 @@ public class TransactionService {
         amount = Validation.validateMoney(amount);
         idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
 
+
+        // First check of idempotency key, that is optional
+        // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
+        // transaction when the one with the same key already exists
         Optional<Transaction> existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransactionWithKey.isPresent()){
@@ -221,6 +235,8 @@ public class TransactionService {
         BankAccount bankAccount = bankAccountRepository.findByIdForUpdate(toAccountId)
                 .orElseThrow(() -> new BankAccountNotFoundException(toAccountId));
 
+
+        //Second check of idempotency key that is crucial after the locking
         existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransactionWithKey.isPresent()){
@@ -277,6 +293,7 @@ public class TransactionService {
                 transaction.getAmount().compareTo(amount) == 0;
     }
 
+    // If the transactions with the same idempotency key are similar than will return it, otherwise - eexception
     private TransactionResponse handleExisting(Transaction transaction, Long fromAccountId, Long toAccountId, BigDecimal amount){
         if (!matchesRequest(transaction, fromAccountId, toAccountId, amount)){
             throw new IdempotencyKeyConflictException("Idempotency key was already used for another transfer");

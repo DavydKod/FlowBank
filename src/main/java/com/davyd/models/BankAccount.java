@@ -25,14 +25,16 @@ public class BankAccount {
     @Column(nullable = false)
     private AccountStatus status;
 
+    // Applies to a rolling 24-hour window, not a calendar day
     @Column(name = "daily_outgoing_limit", nullable = false, precision = 19, scale = 2)
     private BigDecimal dailyOutgoingLimit;
 
+    // Prevents lost updates by detecting concurrent modifications
     @Version
     @Column(nullable = false)
     private Long version;
 
-
+    // Changing this default may break tests
     public static final BigDecimal DEFAULT_DAILY_OUTGOING_LIMIT = new BigDecimal("1000.00");
 
     protected BankAccount() {
