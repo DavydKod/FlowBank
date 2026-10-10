@@ -1,168 +1,212 @@
 # FlowBank
 
-FlowBank is a backend banking system built with **Java and Spring Boot**.
+**FlowBank** is a RESTful banking backend built with Java 25, Kotlin, Spring Boot, and PostgreSQL.
 
-The project is designed to model core banking operations while focusing on backend architecture, data consistency, transaction management, concurrency control, testing, and production-oriented development practices.
+The project implements core banking operations with an emphasis on **transactional integrity, concurrency control, database consistency, automated testing, and maintainable backend architecture**.
+
+FlowBank is designed to demonstrate practical backend engineering concepts, including race condition handling, database locking strategies, idempotent operations, integration testing against real PostgreSQL instances, and automated CI pipelines.
 
 ## Tech Stack
 
-* Java
-* Kotlin
-* Spring Boot
-* Spring Data JPA
-* Hibernate
-* PostgreSQL
-* Maven
-* JUnit 5
-* Mockito
-* Flyway
+**Backend**
+- Java 25
+- Kotlin
+- Spring Boot 3
+- Spring Data JPA / Hibernate
+- PostgreSQL
+- Maven
+
+**Database & Infrastructure**
+- Flyway
+- Docker / Docker Compose
+- Testcontainers
+
+**Testing & Quality**
+- JUnit 5
+- Mockito
+- Spring Boot Test
+- Maven Surefire & Failsafe
+- JaCoCo
+- GitHub Actions
 
 ## Features
 
 ### User Management
 
-* Create users
-* Retrieve users
-* Update users
-* Delete users
-* Unique email validation
+- Create, retrieve, update, and delete users
+- Unique email validation
+- Database-enforced uniqueness constraints
+- Optimistic locking for concurrent entity modifications
+- Handling of database integrity violations
 
 ### Bank Account Management
 
-* Create bank accounts
-* Retrieve accounts
-* Account ownership
-* Account statuses
-* Block and unblock accounts
-* Balance management
+- Create and retrieve bank accounts
+- Associate accounts with users
+- Manage account statuses
+- Block and unblock accounts
+- Maintain account balances
+- Enforce non-negative balances
+- Configure daily transfer limits
+- Validate account ownership and availability
 
-### Transactions
+### Banking Operations
 
-* Transfer money between accounts
-* Transaction history
-* Filter transactions by account
-* Incoming and outgoing transactions
-* Transaction sorting
-* Balance validation
-* Account status validation
+FlowBank supports three primary banking operations:
 
-### Concurrency & Data Consistency
+**Deposits**
+- Add funds to an account
+- Validate account state
+- Update balances transactionally
 
-* Transactional money transfers with `@Transactional`
-* Pessimistic locking for bank accounts
-* Deterministic lock ordering to prevent deadlocks
-* Optimistic locking with `@Version`
+**Withdrawals**
+- Withdraw available funds
+- Prevent insufficient-funds operations
+- Enforce balance constraints
 
-### Error Handling
+**Transfers**
+- Transfer funds between bank accounts
+- Validate sender and recipient accounts
+- Enforce daily transfer limits
+- Apply deterministic pessimistic locking
+- Prevent duplicate operations through idempotency keys
 
-* Global exception handling with `@RestControllerAdvice`
-* Custom domain exceptions
-* Structured API error responses
+### Transaction History & Analytics
 
-### Testing
+- Retrieve transaction history
+- Filter transactions by account
+- Distinguish incoming and outgoing transactions
+- Sort transaction records
+- Calculate account transaction statistics
+- Provide aggregate values such as totals, averages, and largest transactions
 
-* Unit testing with JUnit 5
-* Dependency mocking with Mockito
+## Concurrency & Data Consistency
 
-## Architecture
+Concurrency safety is a central part of FlowBank.
 
-The application follows a layered architecture:
+The application combines transactional boundaries, database constraints, and locking strategies to protect financial operations from inconsistent states.
 
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-PostgreSQL
-```
+### Transactional Operations
 
-Main layers:
+Banking operations execute within Spring-managed database transactions using `@Transactional`.
 
-```text
-controller/
-dto/
-service/
-repository/
-model/
-exception/
-```
+Operations either complete successfully or roll back when an exception prevents successful execution.
 
-Controllers handle HTTP requests, services contain business logic, repositories provide database access, and entities represent the persistence model.
+### Pessimistic Locking
 
-## Transaction Safety
+Bank account modifications use database-level pessimistic write locks to coordinate concurrent balance updates.
 
-Money transfers are executed inside database transactions.
+For transfers, accounts are locked in deterministic ID order:
 
-Both participating bank accounts are locked using pessimistic write locks before their balances are modified.
+`min(accountId) → max(accountId)`
 
-Locks are acquired in deterministic ID order:
+This reduces the risk of deadlocks when concurrent transfers access overlapping accounts.
 
-```text
-min(accountId) → max(accountId)
-```
+### Optimistic Locking
 
-This reduces the risk of database deadlocks when multiple transfers involving the same accounts are executed concurrently.
+JPA `@Version` fields provide optimistic concurrency control for versioned entities.
 
-## API
+Conflicting modifications can be detected rather than silently overwriting changes.
 
-The REST API currently provides endpoints for:
+### Database Constraints
 
-```text
-/users
-/accounts
-/transactions
-```
+Database-level constraints act as a final consistency boundary, including:
 
-The API is actively evolving as new banking functionality is implemented.
+- Unique user email addresses
+- Unique transaction idempotency keys
+- Non-negative account balances
+- Referential integrity between related entities
 
-## Planned Features
+### Race Condition Handling
 
-* Authentication and authorization
-* Spring Security
-* JWT authentication
-* Roles and permissions
-* Docker / Docker Compose
-* Integration tests
-* CI/CD with GitHub Actions
-* Transaction pagination
-* Improved API documentation
-* Auditing
-* Database migrations
-* Additional banking operations
+The application handles integrity violations that can occur when concurrent requests pass preliminary application-level checks.
 
-## Running the Project
+Spring's `DataIntegrityViolationException` is used where appropriate to translate database constraint violations into meaningful application behavior.
+
+### Idempotency
+
+Financial operations support idempotency keys to prevent duplicate processing.
+
+When a request uses an existing idempotency key:
+
+- **Same operation type and amount:** The previously recorded result is returned without executing the operation again.
+- **Different operation type or amount:** A domain exception is thrown to indicate an idempotency conflict.
+- **New idempotency key:** The operation is processed normally, subject to business validations.
+
+Database-level uniqueness constraints protect idempotency keys against concurrent duplicate requests.
+
+This ensures that retrying an identical request does not apply the same balance modification multiple times.
+
+### Database Constraints
+
+Database constraints provide an additional layer of data integrity:
+
+- Unique user email addresses
+- Unique transaction idempotency keys
+- Non-negative account balances
+- Referential integrity between users and bank accounts
+
+Application-level validations are complemented by database constraints to handle race conditions that cannot be reliably prevented through preliminary checks alone.
+
+### Code Coverage
+
+JaCoCo is integrated into the Maven build to generate code coverage reports.
+
+Coverage reports provide visibility into tested and untested execution paths, helping evaluate test completeness and identify opportunities for additional testing.
+
+JaCoCo is used for **reporting purposes only**. The build does not enforce minimum coverage thresholds.
+
+### Integration Testing Infrastructure
+
+Integration tests use **Testcontainers with Docker** to run against real PostgreSQL database instances.
+
+This allows persistence, transaction management, database constraints, and concurrency behavior to be tested in an environment closer to production database behavior.
+
+Docker is required for Testcontainers-based tests but is not used to containerize or deploy the FlowBank application.
+
+### Continuous Integration
+
+GitHub Actions provides automated build and test verification.
+
+The CI workflow:
+
+- Builds the application using Maven
+- Executes unit tests through Maven Surefire
+- Executes integration tests through Maven Failsafe
+- Uses Docker and Testcontainers for PostgreSQL integration testing
+- Generates JaCoCo code coverage reports
+
+The CI pipeline verifies the automated test suites without enforcing a minimum coverage percentage.
 
 ### Requirements
 
-* Java
-* Maven
-* PostgreSQL
+- JDK 21+
+- Maven
+- PostgreSQL for local application execution
+- Docker-compatible container runtime for Testcontainers-based integration tests
 
-Clone the repository:
+### Running Tests
 
-```bash
-git clone <repository-url>
-cd FlowBank
-```
-
-Configure the PostgreSQL connection in your application configuration.
-
-Run the application:
-
-```bash
-mvn spring-boot:run
-```
-
-Run tests:
+Run unit tests:
 
 ```bash
 mvn test
 ```
 
-## Project Status
+Run the full Maven verification lifecycle, including integration tests:
 
-🚧 **In active development**
+```bash
+mvn clean verify
+```
 
-FlowBank is being continuously expanded with new banking functionality, infrastructure, testing, security, and production-oriented features.
+JaCoCo coverage reports are generated through the configured Maven reporting lifecycle.
+
+### Project Status
+
+**FlowBank v1.0 — Release preparation**
+
+Core banking operations, concurrency control, database consistency mechanisms, unit tests, integration tests, and automated CI verification have been implemented.
+
+The remaining release preparation focuses on documentation and final project review.
+
+FlowBank is an educational and portfolio-oriented backend system, not a production banking service intended for real financial transactions.
