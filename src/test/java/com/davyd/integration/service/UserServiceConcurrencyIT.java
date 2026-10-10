@@ -24,6 +24,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
 
+import static com.davyd.support.ConcurrencyTestUtils.awaitOrThrow;
+
 public class UserServiceConcurrencyIT extends BaseServiceIT {
     @Autowired
     private UserService userService;
@@ -101,7 +103,7 @@ public class UserServiceConcurrencyIT extends BaseServiceIT {
             // Force both requests past the preliminary uniqueness check
             // so the database constraint resolves the race
             accountCreationShouldBegin.countDown();
-            accountCheckReached.await(5, TimeUnit.SECONDS);
+            awaitOrThrow(accountCheckReached, "Bank account creation timed out");
             return false;
         }).when(bankAccountRepository).existsByOwnerId(userId);
 
@@ -112,7 +114,7 @@ public class UserServiceConcurrencyIT extends BaseServiceIT {
             });
 
             Future<BankAccountResponse> f2 = executor.submit(()-> {
-                accountCreationShouldBegin.await(5, TimeUnit.SECONDS);
+                awaitOrThrow(accountCreationShouldBegin, "User deletion timed out");
                 BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userId);
                 accountCheckReached.countDown();
                 return bankAccountResponse;

@@ -2,8 +2,6 @@ package com.davyd.integration.service;
 
 import com.davyd.dto.response.BankAccountResponse;
 import com.davyd.dto.response.UserResponse;
-import com.davyd.exception.EmailAlreadyExistsException;
-import com.davyd.exception.UserDeletionNotAllowedException;
 import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.BankAccount;
 import com.davyd.models.User;
@@ -19,12 +17,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import static com.davyd.support.ConcurrencyTestUtils.awaitOrThrow;
 
 public class BankAccountServiceConcurrencyIT extends BaseServiceIT {
     @Autowired
@@ -58,18 +57,14 @@ public class BankAccountServiceConcurrencyIT extends BaseServiceIT {
             Optional<User> foundUser = userRepository.findByEmail(user.email());
             if (findCheckInBankAccountCreation.get()) {
                 bankAccountCreationCheckCompleted.countDown();
-                if (!userDeletionCompleted.await(10, TimeUnit.SECONDS)) {
-                    throw new IllegalStateException("User deletion timed out");
-                }
+                awaitOrThrow(userDeletionCompleted, "User deletion timed out");
             }
             return foundUser;
         }).when(userRepository).findById(user.id());
 
         try {
             Future<Void> f1 = executor.submit(() -> {
-                if (!bankAccountCreationCheckCompleted.await(10, TimeUnit.SECONDS)){
-                    throw new IllegalStateException("Bank account creation timed out");
-                }
+                awaitOrThrow(bankAccountCreationCheckCompleted,"Bank account creation timed out");
                 findCheckInBankAccountCreation.set(false);
                 userService.deleteUser(user.id());
                 userDeletionCompleted.countDown();
