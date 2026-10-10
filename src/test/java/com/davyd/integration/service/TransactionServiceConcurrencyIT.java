@@ -100,7 +100,7 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
         UserResponse user = userService.createUser("Davyd", "davyd@gmail.com");
         BankAccountResponse account = bankAccountService.createAccount(user.id());
 
-        transactionService.deposit(account.id(), new BigDecimal("250.00"), "key1");
+        transactionService.deposit(account.id(), new BigDecimal("450.00"), "key1");
 
         clearInvocations(transactionRepository, bankAccountRepository);
 
@@ -114,11 +114,11 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
         // returning a transaction) because it's an exception at the lowest layer
         try {
             Future<TransactionResponse> future1 = executor.submit(() ->
-                transactionService.withdraw(account.id(), new BigDecimal("200"), "duplicate-key")
+                transactionService.withdraw(account.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             Future<TransactionResponse> future2 = executor.submit(() ->
-                    transactionService.deposit(account.id(), new BigDecimal("200"), "duplicate-key")
+                    transactionService.withdraw(account.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             int successful = 0;
@@ -176,11 +176,11 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
         // returning a transaction) because it's an exception at the lowest layer
         try {
             Future<TransactionResponse> future1 = executor.submit(() ->
-                    transactionService.transfer(account1.id(), account2.id(), new BigDecimal("200"), "duplicate-key")
+                    transactionService.transfer(account1.id(), account2.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             Future<TransactionResponse> future2 = executor.submit(() ->
-                    transactionService.transfer(account1.id(), account2.id(), new BigDecimal("200"), "duplicate-key")
+                    transactionService.transfer(account1.id(), account2.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             int successful = 0;
