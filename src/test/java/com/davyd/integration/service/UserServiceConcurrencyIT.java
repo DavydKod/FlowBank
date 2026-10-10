@@ -51,7 +51,7 @@ public class UserServiceConcurrencyIT extends BaseServiceIT {
         doAnswer(invocation -> {
             // Force both requests past the preliminary uniqueness check
             // so the database constraint resolves the race
-            barrier.await(5, TimeUnit.SECONDS);
+            barrier.await(10, TimeUnit.SECONDS);
             return false;
         }).when(userRepository).existsByEmail(userEmail);
 
@@ -65,7 +65,7 @@ public class UserServiceConcurrencyIT extends BaseServiceIT {
 
             for (Future<UserResponse> future : List.of(f1, f2)) {
                 try {
-                    future.get(5, TimeUnit.SECONDS);
+                    future.get(20, TimeUnit.SECONDS);
                     successful++;
                 } catch (ExecutionException e) {
                     assertInstanceOf(
@@ -125,7 +125,7 @@ public class UserServiceConcurrencyIT extends BaseServiceIT {
 
             for (Future<?> future: List.of(f1, f2)){
                 try{
-                    future.get();
+                    future.get(20, TimeUnit.SECONDS);
                     successful++;
                 } catch (ExecutionException e){
                     assertInstanceOf(

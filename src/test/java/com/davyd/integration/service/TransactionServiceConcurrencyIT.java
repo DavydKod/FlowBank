@@ -47,6 +47,8 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
+        // Force both requests past the preliminary uniqueness check
+        // so the database constraint resolves the race
         doAnswer(invocation -> Optional.empty())
                 .when(transactionRepository)
                 .findByIdempotencyKey(anyString());
@@ -106,6 +108,8 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
+        // Force both requests past the preliminary uniqueness check
+        // so the database constraint resolves the race
         doAnswer(invocation -> Optional.empty())
                 .when(transactionRepository)
                 .findByIdempotencyKey(anyString());
@@ -168,6 +172,8 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
+        // Force both requests past the preliminary uniqueness check
+        // so the database constraint resolves the race
         doAnswer(invocation -> Optional.empty())
                 .when(transactionRepository)
                 .findByIdempotencyKey(anyString());

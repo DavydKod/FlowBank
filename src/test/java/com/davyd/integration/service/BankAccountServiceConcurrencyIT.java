@@ -52,8 +52,6 @@ public class BankAccountServiceConcurrencyIT extends BaseServiceIT {
         clearInvocations(bankAccountRepository, userRepository);
 
         doAnswer(invocation -> {
-            // Force both requests past the preliminary uniqueness check
-            // so the database constraint resolves the race
             Optional<User> foundUser = userRepository.findByEmail(user.email());
             if (findCheckInBankAccountCreation.get()) {
                 bankAccountCreationCheckCompleted.countDown();
