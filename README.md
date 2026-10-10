@@ -1,6 +1,6 @@
 # FlowBank
 
-**FlowBank** is a RESTful banking backend built with Java 21, Kotlin, Spring Boot, and PostgreSQL.
+**FlowBank** is a RESTful banking backend built with Java 25, Kotlin, Spring Boot, and PostgreSQL.
 
 The project implements core banking operations with an emphasis on **transactional integrity, concurrency control, database consistency, automated testing, and maintainable backend architecture**.
 
@@ -9,7 +9,7 @@ FlowBank is designed to demonstrate practical backend engineering concepts, incl
 ## Tech Stack
 
 **Backend**
-- Java 21
+- Java 25
 - Kotlin
 - Spring Boot 3
 - Spring Data JPA / Hibernate
