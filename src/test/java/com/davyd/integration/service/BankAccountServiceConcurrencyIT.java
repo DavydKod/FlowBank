@@ -1,7 +1,10 @@
 package com.davyd.integration.service;
 
 import com.davyd.dto.response.BankAccountResponse;
+import com.davyd.dto.response.UserResponse;
+import com.davyd.exception.EmailAlreadyExistsException;
 import com.davyd.exception.UserDeletionNotAllowedException;
+import com.davyd.exception.UserNotFoundException;
 import com.davyd.models.BankAccount;
 import com.davyd.models.User;
 import com.davyd.repository.BankAccountRepository;
@@ -13,7 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -34,45 +40,55 @@ public class BankAccountServiceConcurrencyIT extends BaseServiceIT {
     private BankAccountRepository bankAccountRepository;
 
     @Test
-    void shouldThrowWhenDeletingConcurrentUserWithCreatedBankAccount() throws Exception{
+    void shouldThrowWhenCreatingConcurrentBankAccountForDeletedUser() throws Exception {
+        UserResponse user = userService.createUser("Davyd", "davyd@gmail.com");
+
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        CountDownLatch accountCheckReached  = new CountDownLatch(1);
-        CountDownLatch accountCreationShouldBegin = new CountDownLatch(1);
+        CountDownLatch bankAccountCreationCheckCompleted = new CountDownLatch(1);
+        CountDownLatch userDeletionCompleted = new CountDownLatch(1);
 
-        Long userId = userService.createUser("Davyd", "davyd@gmail.com").id();
+        AtomicBoolean findCheckInBankAccountCreation = new AtomicBoolean(true);
+
+        clearInvocations(bankAccountRepository, userRepository);
 
         doAnswer(invocation -> {
             // Force both requests past the preliminary uniqueness check
             // so the database constraint resolves the race
-            accountCreationShouldBegin.countDown();
-            accountCheckReached.await(5, TimeUnit.SECONDS);
-            return false;
-        }).when(bankAccountRepository).existsByOwnerId(userId);
+            Optional<User> foundUser = userRepository.findByEmail(user.email());
+            if (findCheckInBankAccountCreation.get()) {
+                bankAccountCreationCheckCompleted.countDown();
+                if (!userDeletionCompleted.await(10, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("User deletion timed out");
+                }
+            }
+            return foundUser;
+        }).when(userRepository).findById(user.id());
 
         try {
-            Future<?> f1 = executor.submit(() -> {
-                userService.deleteUser(userId);
+            Future<Void> f1 = executor.submit(() -> {
+                if (!bankAccountCreationCheckCompleted.await(10, TimeUnit.SECONDS)){
+                    throw new IllegalStateException("Bank account creation timed out");
+                }
+                findCheckInBankAccountCreation.set(false);
+                userService.deleteUser(user.id());
+                userDeletionCompleted.countDown();
                 return null;
             });
 
-            Future<BankAccountResponse> f2 = executor.submit(()-> {
-                accountCreationShouldBegin.await(5, TimeUnit.SECONDS);
-                BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userId);
-                accountCheckReached.countDown();
-                return bankAccountResponse;
-            });
+            Future<BankAccountResponse> f2 = executor.submit(() ->
+                    bankAccountService.createAccount(user.id()));
 
             int successful = 0;
             int failed = 0;
 
-            for (Future<?> future: List.of(f1, f2)){
-                try{
-                    future.get();
+            for (Future<?> future : List.of(f1, f2)) {
+                try {
+                    future.get(20, TimeUnit.SECONDS);
                     successful++;
-                } catch (ExecutionException e){
+                } catch (ExecutionException e) {
                     assertInstanceOf(
-                            UserDeletionNotAllowedException.class,
+                            UserNotFoundException.class,
                             e.getCause()
                     );
                     failed++;
@@ -82,8 +98,8 @@ public class BankAccountServiceConcurrencyIT extends BaseServiceIT {
             assertEquals(1, successful);
             assertEquals(1, failed);
 
-            verify(userRepository, times(1))
-                    .delete(any(User.class));
+            verify(userRepository, times(2))
+                    .findById(user.id());
 
             verify(bankAccountRepository, times(1))
                     .saveAndFlush(any(BankAccount.class));
