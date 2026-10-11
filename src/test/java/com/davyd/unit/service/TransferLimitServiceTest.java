@@ -1,10 +1,10 @@
 package com.davyd.unit.service;
 
-import com.davyd.exception.DailyTransferLimitExceededException;
-import com.davyd.models.BankAccount;
-import com.davyd.models.User;
-import com.davyd.repository.TransactionRepository;
-import com.davyd.service.OutgoingTransactionsLimitService;
+import com.davyd.bankaccount.exception.DailyTransferLimitExceededException;
+import com.davyd.bankaccount.BankAccount;
+import com.davyd.user.User;
+import com.davyd.transaction.TransactionRepository;
+import com.davyd.bankaccount.OutgoingTransactionsLimitService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

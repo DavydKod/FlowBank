@@ -1,13 +1,12 @@
 package com.davyd.unit.service;
 
-import com.davyd.dto.response.UserResponse;
-import com.davyd.exception.EmailAlreadyExistsException;
-import com.davyd.exception.UserNotFoundException;
-import com.davyd.models.User;
-import com.davyd.repository.BankAccountRepository;
-import com.davyd.repository.UserRepository;
-import com.davyd.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
+import com.davyd.user.dto.response.UserResponse;
+import com.davyd.user.exception.EmailAlreadyExistsException;
+import com.davyd.user.exception.UserNotFoundException;
+import com.davyd.user.User;
+import com.davyd.bankaccount.BankAccountRepository;
+import com.davyd.user.UserRepository;
+import com.davyd.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

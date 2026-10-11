@@ -1,10 +1,10 @@
 package com.davyd.integration.controller;
 
-import com.davyd.dto.request.ChangeUserNameRequest;
-import com.davyd.dto.request.CreateUserRequest;
+import com.davyd.user.dto.request.ChangeUserNameRequest;
+import com.davyd.user.dto.request.CreateUserRequest;
 import com.davyd.integration.TestcontainersConfiguration;
-import com.davyd.models.User;
-import com.davyd.repository.UserRepository;
+import com.davyd.user.User;
+import com.davyd.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

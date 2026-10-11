@@ -1,15 +1,15 @@
 package com.davyd.integration.service;
 
-import com.davyd.dto.response.BankAccountResponse;
-import com.davyd.dto.response.TransactionResponse;
-import com.davyd.dto.response.UserResponse;
-import com.davyd.exception.IdempotencyKeyConflictException;
-import com.davyd.models.Transaction;
-import com.davyd.repository.BankAccountRepository;
-import com.davyd.repository.TransactionRepository;
-import com.davyd.service.BankAccountService;
-import com.davyd.service.TransactionService;
-import com.davyd.service.UserService;
+import com.davyd.bankaccount.dto.response.BankAccountResponse;
+import com.davyd.transaction.dto.response.TransactionResponse;
+import com.davyd.user.dto.response.UserResponse;
+import com.davyd.transaction.exception.IdempotencyKeyConflictException;
+import com.davyd.transaction.Transaction;
+import com.davyd.bankaccount.BankAccountRepository;
+import com.davyd.transaction.TransactionRepository;
+import com.davyd.bankaccount.BankAccountService;
+import com.davyd.transaction.TransactionService;
+import com.davyd.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;

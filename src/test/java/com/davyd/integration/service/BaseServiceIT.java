@@ -1,9 +1,9 @@
 package com.davyd.integration.service;
 
 import com.davyd.integration.TestcontainersConfiguration;
-import com.davyd.repository.BankAccountRepository;
-import com.davyd.repository.TransactionRepository;
-import com.davyd.repository.UserRepository;
+import com.davyd.bankaccount.BankAccountRepository;
+import com.davyd.transaction.TransactionRepository;
+import com.davyd.user.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
