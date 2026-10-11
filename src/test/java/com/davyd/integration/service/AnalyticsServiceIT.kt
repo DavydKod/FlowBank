@@ -1,9 +1,9 @@
 package com.davyd.integration.service
 
-import com.davyd.service.AnalyticsService
-import com.davyd.service.BankAccountService
-import com.davyd.service.TransactionService
-import com.davyd.service.UserService
+import com.davyd.analytics.AnalyticsService
+import com.davyd.bankaccount.BankAccountService
+import com.davyd.transaction.TransactionService
+import com.davyd.user.UserService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal

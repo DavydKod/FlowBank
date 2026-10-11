@@ -1,14 +1,14 @@
 package com.davyd.integration.service;
 
-import com.davyd.dto.response.BankAccountResponse;
-import com.davyd.dto.response.UserResponse;
-import com.davyd.exception.UserNotFoundException;
-import com.davyd.models.BankAccount;
-import com.davyd.models.User;
-import com.davyd.repository.BankAccountRepository;
-import com.davyd.repository.UserRepository;
-import com.davyd.service.BankAccountService;
-import com.davyd.service.UserService;
+import com.davyd.bankaccount.dto.response.BankAccountResponse;
+import com.davyd.user.dto.response.UserResponse;
+import com.davyd.user.exception.UserNotFoundException;
+import com.davyd.bankaccount.BankAccount;
+import com.davyd.user.User;
+import com.davyd.bankaccount.BankAccountRepository;
+import com.davyd.user.UserRepository;
+import com.davyd.bankaccount.BankAccountService;
+import com.davyd.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;

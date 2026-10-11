@@ -1,9 +1,9 @@
 package com.davyd.unit.service
 
-import com.davyd.exception.BankAccountNotFoundException
-import com.davyd.repository.BankAccountRepository
-import com.davyd.repository.TransactionRepository
-import com.davyd.service.AnalyticsService
+import com.davyd.bankaccount.exception.BankAccountNotFoundException
+import com.davyd.bankaccount.BankAccountRepository
+import com.davyd.transaction.TransactionRepository
+import com.davyd.analytics.AnalyticsService
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

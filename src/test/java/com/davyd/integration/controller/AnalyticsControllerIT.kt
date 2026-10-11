@@ -1,10 +1,10 @@
 package com.davyd.integration.controller
 
 import com.davyd.integration.TestcontainersConfiguration
-import com.davyd.models.BankAccount
-import com.davyd.models.User
-import com.davyd.repository.BankAccountRepository
-import com.davyd.repository.UserRepository
+import com.davyd.bankaccount.BankAccount
+import com.davyd.user.User
+import com.davyd.bankaccount.BankAccountRepository
+import com.davyd.user.UserRepository
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

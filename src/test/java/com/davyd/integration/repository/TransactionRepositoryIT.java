@@ -1,13 +1,13 @@
 package com.davyd.integration.repository;
 
 import com.davyd.integration.TestcontainersConfiguration;
-import com.davyd.models.BankAccount;
-import com.davyd.models.Transaction;
-import com.davyd.models.TransactionType;
-import com.davyd.models.User;
-import com.davyd.repository.BankAccountRepository;
-import com.davyd.repository.TransactionRepository;
-import com.davyd.repository.UserRepository;
+import com.davyd.bankaccount.BankAccount;
+import com.davyd.transaction.Transaction;
+import com.davyd.transaction.TransactionType;
+import com.davyd.user.User;
+import com.davyd.bankaccount.BankAccountRepository;
+import com.davyd.transaction.TransactionRepository;
+import com.davyd.user.UserRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

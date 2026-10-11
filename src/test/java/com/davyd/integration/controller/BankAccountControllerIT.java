@@ -1,15 +1,15 @@
 package com.davyd.integration.controller;
 
-import com.davyd.dto.request.ChangeBankAccountDailyOutgoingLimitRequest;
-import com.davyd.dto.request.CreateBankAccountRequest;
-import com.davyd.dto.response.BankAccountResponse;
-import com.davyd.dto.response.UserResponse;
+import com.davyd.bankaccount.dto.request.ChangeBankAccountDailyOutgoingLimitRequest;
+import com.davyd.bankaccount.dto.request.CreateBankAccountRequest;
+import com.davyd.bankaccount.dto.response.BankAccountResponse;
+import com.davyd.user.dto.response.UserResponse;
 import com.davyd.integration.TestcontainersConfiguration;
-import com.davyd.models.AccountStatus;
-import com.davyd.repository.BankAccountRepository;
-import com.davyd.repository.UserRepository;
-import com.davyd.service.BankAccountService;
-import com.davyd.service.UserService;
+import com.davyd.bankaccount.AccountStatus;
+import com.davyd.bankaccount.BankAccountRepository;
+import com.davyd.user.UserRepository;
+import com.davyd.bankaccount.BankAccountService;
+import com.davyd.user.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

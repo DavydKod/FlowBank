@@ -1,8 +1,8 @@
 package com.davyd.integration.repository;
 
 import com.davyd.integration.TestcontainersConfiguration;
-import com.davyd.models.User;
-import com.davyd.repository.UserRepository;
+import com.davyd.user.User;
+import com.davyd.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;

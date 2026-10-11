@@ -1,15 +1,15 @@
 package com.davyd.integration.service;
 
-import com.davyd.dto.response.BankAccountResponse;
-import com.davyd.dto.response.UserResponse;
-import com.davyd.exception.BankAccountNotFoundException;
-import com.davyd.exception.InvalidAccountStatusException;
-import com.davyd.exception.UserDeletionNotAllowedException;
-import com.davyd.exception.UserNotFoundException;
-import com.davyd.models.AccountStatus;
-import com.davyd.models.BankAccount;
-import com.davyd.service.BankAccountService;
-import com.davyd.service.UserService;
+import com.davyd.bankaccount.dto.response.BankAccountResponse;
+import com.davyd.user.dto.response.UserResponse;
+import com.davyd.bankaccount.exception.BankAccountNotFoundException;
+import com.davyd.bankaccount.exception.InvalidAccountStatusException;
+import com.davyd.user.exception.UserDeletionNotAllowedException;
+import com.davyd.user.exception.UserNotFoundException;
+import com.davyd.bankaccount.AccountStatus;
+import com.davyd.bankaccount.BankAccount;
+import com.davyd.bankaccount.BankAccountService;
+import com.davyd.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

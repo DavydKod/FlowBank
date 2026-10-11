@@ -1,15 +1,15 @@
 package com.davyd.unit.service;
 
-import com.davyd.dto.response.BankAccountResponse;
-import com.davyd.exception.BankAccountNotFoundException;
-import com.davyd.exception.InvalidAccountStatusException;
-import com.davyd.exception.UserNotFoundException;
-import com.davyd.models.AccountStatus;
-import com.davyd.models.BankAccount;
-import com.davyd.models.User;
-import com.davyd.repository.BankAccountRepository;
-import com.davyd.repository.UserRepository;
-import com.davyd.service.BankAccountService;
+import com.davyd.bankaccount.dto.response.BankAccountResponse;
+import com.davyd.bankaccount.exception.BankAccountNotFoundException;
+import com.davyd.bankaccount.exception.InvalidAccountStatusException;
+import com.davyd.user.exception.UserNotFoundException;
+import com.davyd.bankaccount.AccountStatus;
+import com.davyd.bankaccount.BankAccount;
+import com.davyd.user.User;
+import com.davyd.bankaccount.BankAccountRepository;
+import com.davyd.user.UserRepository;
+import com.davyd.bankaccount.BankAccountService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

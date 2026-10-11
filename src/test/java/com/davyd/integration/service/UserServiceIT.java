@@ -1,9 +1,9 @@
 package com.davyd.integration.service;
 
-import com.davyd.dto.response.UserResponse;
-import com.davyd.exception.EmailAlreadyExistsException;
-import com.davyd.exception.UserNotFoundException;
-import com.davyd.service.UserService;
+import com.davyd.user.dto.response.UserResponse;
+import com.davyd.user.exception.EmailAlreadyExistsException;
+import com.davyd.user.exception.UserNotFoundException;
+import com.davyd.user.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
