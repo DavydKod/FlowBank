@@ -13,6 +13,8 @@ import com.davyd.user.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WithMockUser(username = "controller-test@example.com")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -227,7 +230,7 @@ class BankAccountControllerIT {
 
         mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(content()
                         .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -249,7 +252,7 @@ class BankAccountControllerIT {
 
         mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"));
@@ -266,7 +269,7 @@ class BankAccountControllerIT {
 
         mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"));
@@ -286,7 +289,7 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(patch("/accounts/{id}/block", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/block", account.id()).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(account.id()))
                 .andExpect(jsonPath("$.status").value("BLOCKED"));
@@ -299,7 +302,7 @@ class BankAccountControllerIT {
 
     @Test
     void shouldReturn404WhenBlockingNonExistingAccount() throws Exception {
-        mockMvc.perform(patch("/accounts/{id}/block", 999999L))
+        mockMvc.perform(patch("/accounts/{id}/block", 999999L).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -308,7 +311,7 @@ class BankAccountControllerIT {
     void shouldReturn400WhenBlockingAccountWithInvalidId()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/block", 0))
+        mockMvc.perform(patch("/accounts/{id}/block", 0).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -325,13 +328,13 @@ class BankAccountControllerIT {
 
         bankAccountService.blockAccount(account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/block", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/block", account.id()).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
 
         bankAccountService.closeAccount(account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/block", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/block", account.id()).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -350,7 +353,7 @@ class BankAccountControllerIT {
 
         bankAccountService.blockAccount(account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(account.id()))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
@@ -365,7 +368,7 @@ class BankAccountControllerIT {
     void shouldReturn404WhenUnblockingNonExistingAccount()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", 999999L))
+        mockMvc.perform(patch("/accounts/{id}/unblock", 999999L).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -374,7 +377,7 @@ class BankAccountControllerIT {
     void shouldReturn400WhenUnblockingAccountWithInvalidId()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", 0))
+        mockMvc.perform(patch("/accounts/{id}/unblock", 0).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -390,13 +393,13 @@ class BankAccountControllerIT {
                 bankAccountService.createAccount(user.id());
 
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
 
         bankAccountService.closeAccount(account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -413,7 +416,7 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(patch("/accounts/{id}/close", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/close", account.id()).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(account.id()))
                 .andExpect(jsonPath("$.status").value("CLOSED"));
@@ -428,7 +431,7 @@ class BankAccountControllerIT {
     void shouldReturn404WhenClosingNonExistingAccount()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/close", 999999L))
+        mockMvc.perform(patch("/accounts/{id}/close", 999999L).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -437,7 +440,7 @@ class BankAccountControllerIT {
     void shouldReturn400WhenClosingAccountWithInvalidId()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/close", 0))
+        mockMvc.perform(patch("/accounts/{id}/close", 0).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -454,7 +457,7 @@ class BankAccountControllerIT {
 
         bankAccountService.closeAccount(account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/close", account.id()))
+        mockMvc.perform(patch("/accounts/{id}/close", account.id()).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -481,7 +484,7 @@ class BankAccountControllerIT {
                         account.id()
                 )
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(account.id()))
                 .andExpect(jsonPath("$.dailyOutgoingLimit").value(500.00));
@@ -510,7 +513,7 @@ class BankAccountControllerIT {
                         999999L
                 )
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -529,7 +532,7 @@ class BankAccountControllerIT {
                         0
                 )
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -554,7 +557,7 @@ class BankAccountControllerIT {
                         account.id()
                 )
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"));
