@@ -19,10 +19,12 @@ public class SecurityConfig {
 
         return http
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/registration").permitAll()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(Customizer.withDefaults())
+                .csrf(Customizer.withDefaults())
                 .build();
     }
 
