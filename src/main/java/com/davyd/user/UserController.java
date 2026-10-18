@@ -109,35 +109,6 @@ public class UserController {
     }
 
     @Operation(
-            summary = "Create user",
-            description = "Creates a new user with the provided name and email address"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "User created successfully"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid user data"
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "A user with this email already exists"
-            )
-    })
-    @PostMapping
-    public ResponseEntity<UserResponse> createUser(
-            @RequestBody
-            @Valid
-            CreateUserRequest createUserRequest){
-        UserResponse userResponse = userService.createUser(createUserRequest.name(), createUserRequest.email());
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(userResponse);
-    }
-
-    @Operation(
             summary = "Change user name",
             description = "Updates the name of the specified user"
     )

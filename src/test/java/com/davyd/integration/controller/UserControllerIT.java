@@ -8,6 +8,8 @@ import com.davyd.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WithMockUser(username = "controller-test@example.com")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -161,97 +164,6 @@ class UserControllerIT {
     }
 
     // =========================================================
-    // POST /users
-    // =========================================================
-
-    @Test
-    void shouldCreateUser() throws Exception {
-        CreateUserRequest request =
-                new CreateUserRequest("Davyd", "davyd@gmail.com");
-
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(content()
-                        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.name").value("Davyd"))
-                .andExpect(jsonPath("$.email").value("davyd@gmail.com"));
-
-        assertTrue(userRepository.existsByEmail("davyd@gmail.com"));
-    }
-
-    @Test
-    void shouldReturn400WhenCreatingUserWithInvalidEmail() throws Exception {
-        CreateUserRequest request =
-                new CreateUserRequest("Davyd", "davyd.com");
-
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message").exists())
-                .andExpect(jsonPath("$.createdAt").exists());
-
-        assertFalse(userRepository.existsByEmail("davyd.com"));
-    }
-
-    @Test
-    void shouldReturn400WhenCreatingUserWithInvalidName() throws Exception {
-        CreateUserRequest request =
-                new CreateUserRequest("", "davyd@gmail.com");
-
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message").exists())
-                .andExpect(jsonPath("$.createdAt").exists());
-
-        assertFalse(userRepository.existsByEmail("davyd@gmail.com"));
-    }
-
-    @Test
-    void shouldReturn409WhenEmailAlreadyExists() throws Exception {
-        userRepository.save(
-                new User("Davyd", "davyd@gmail.com")
-        );
-
-        CreateUserRequest request =
-                new CreateUserRequest("Max", "davyd@gmail.com");
-
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409));
-
-        assertEquals(1, userRepository.count());
-    }
-
-    @Test
-    void shouldReturn400WhenCreateUserBodyIsInvalidJson() throws Exception {
-        String invalidJson = """
-                {
-                    "name": "Davyd",
-                    "email":
-                }
-                """;
-
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidJson))
-                .andExpect(status().isBadRequest());
-
-        assertEquals(0, userRepository.count());
-    }
-
-    // =========================================================
     // PATCH /users/{id}/name
     // =========================================================
 
@@ -266,7 +178,7 @@ class UserControllerIT {
 
         mockMvc.perform(patch("/users/{id}/name", user.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(user.getId()))
                 .andExpect(jsonPath("$.name").value("Max"))
@@ -287,7 +199,7 @@ class UserControllerIT {
 
         mockMvc.perform(patch("/users/{id}/name", 999999L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -301,7 +213,7 @@ class UserControllerIT {
 
         mockMvc.perform(patch("/users/{id}/name", 0)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -319,7 +231,7 @@ class UserControllerIT {
 
         mockMvc.perform(patch("/users/{id}/name", user.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
@@ -344,7 +256,7 @@ class UserControllerIT {
 
         long userId = user.getId();
 
-        mockMvc.perform(delete("/users/{id}", userId))
+        mockMvc.perform(delete("/users/{id}", userId).with(csrf()))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
@@ -353,14 +265,14 @@ class UserControllerIT {
 
     @Test
     void shouldReturn404WhenDeletingNonExistingUser() throws Exception {
-        mockMvc.perform(delete("/users/{id}", 999999L))
+        mockMvc.perform(delete("/users/{id}", 999999L).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
     void shouldReturn400WhenDeletingUserWithInvalidId() throws Exception {
-        mockMvc.perform(delete("/users/{id}", 0))
+        mockMvc.perform(delete("/users/{id}", 0).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }

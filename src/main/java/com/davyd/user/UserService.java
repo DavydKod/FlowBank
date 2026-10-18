@@ -34,7 +34,7 @@ public class UserService {
         return UserMapper.toResponse(user);
     }
 
-    private User getUserEntity(long id) {
+    public User getUserEntity(long id) {
         return userRepository.findById(id)
                 .orElseThrow(
                         () -> new UserNotFoundException(id)

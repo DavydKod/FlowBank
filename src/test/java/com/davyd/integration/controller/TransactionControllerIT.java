@@ -17,6 +17,8 @@ import com.davyd.transaction.TransactionService;
 import com.davyd.user.UserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -30,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WithMockUser(username = "controller-test@example.com")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -366,7 +369,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", "deposit-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.toAccountId").value(account.id()))
@@ -398,7 +401,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", "deposit-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
 
@@ -424,7 +427,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", "deposit-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
 
@@ -450,7 +453,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", "Key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -482,7 +485,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/withdraw")
                         .header("Idempotency-Key", "withdraw-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.fromAccountId").value(account.id()))
@@ -524,7 +527,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/withdraw")
                         .header("Idempotency-Key", "withdraw-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -548,7 +551,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/withdraw")
                         .header("Idempotency-Key", "withdraw-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
 
@@ -574,7 +577,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/withdraw")
                         .header("Idempotency-Key", "Key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -610,7 +613,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "transfer-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.fromAccountId")
@@ -660,7 +663,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "transfer-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest());
 
         assertEquals(0, transactionRepository.count());
@@ -686,7 +689,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "transfer-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isNotFound());
 
         assertEquals(0, transactionRepository.count());
@@ -714,7 +717,7 @@ class TransactionControllerIT {
 
         mockMvc.perform(post("/transactions/deposit")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest());
 
         assertEquals(0, transactionRepository.count());
@@ -739,7 +742,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", " ")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest());
 
         assertEquals(0, transactionRepository.count());
@@ -766,7 +769,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", tooLongKey)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest());
 
         assertEquals(0, transactionRepository.count());
@@ -794,13 +797,13 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestJson))
+                        .content(requestJson).with(csrf()))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestJson))
+                        .content(requestJson).with(csrf()))
                 .andExpect(status().isCreated());
 
         assertEquals(1, transactionRepository.count());
@@ -838,7 +841,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request1)))
+                        .content(objectMapper.writeValueAsString(request1)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.type").value(TransactionType.TRANSFER.name()))
                 .andExpect(jsonPath("$.id").isNumber())
@@ -850,7 +853,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request2)))
+                        .content(objectMapper.writeValueAsString(request2)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -881,7 +884,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/withdraw")
                         .header("Idempotency-Key", "Key1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.type").value(TransactionType.WITHDRAWAL.name()))
@@ -893,7 +896,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "Key2")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                        .content(objectMapper.writeValueAsString(invalidRequest)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -923,7 +926,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/deposit")
                         .header("Idempotency-Key", "Dep-Key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(depositRequest)))
+                        .content(objectMapper.writeValueAsString(depositRequest)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.type").value(TransactionType.DEPOSIT.name()))
@@ -935,7 +938,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/withdraw")
                         .header("Idempotency-Key", "Key1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.type").value(TransactionType.WITHDRAWAL.name()))
@@ -948,7 +951,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "Key2")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                        .content(objectMapper.writeValueAsString(invalidRequest)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
@@ -975,7 +978,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/withdraw")
                         .header("Idempotency-Key", "Key3")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.type").value(TransactionType.WITHDRAWAL.name()))
@@ -990,7 +993,7 @@ class TransactionControllerIT {
         mockMvc.perform(patch("/accounts/{id}/dailyOutgoingLimit", bankAccountResponse1.id())
                         .header("Idempotency-Key", "Other-Key")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(changeRequest)))
+                        .content(objectMapper.writeValueAsString(changeRequest)).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.ownerId").value(userResponse1.id()))
@@ -1001,7 +1004,7 @@ class TransactionControllerIT {
         mockMvc.perform(post("/transactions/transfer")
                         .header("Idempotency-Key", "Key4")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest)))
+                        .content(objectMapper.writeValueAsString(validRequest)).with(csrf()))
                 .andExpect(status().isCreated());
     }
 }
