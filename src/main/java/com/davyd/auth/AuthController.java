@@ -3,6 +3,7 @@ package com.davyd.auth;
 import com.davyd.auth.dto.request.LoginRequest;
 import com.davyd.auth.dto.request.RegisterRequest;
 import com.davyd.common.exception.dto.ErrorResponse;
+import com.davyd.security.principal.FlowBankPrincipal;
 import com.davyd.user.UserService;
 import com.davyd.user.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
@@ -125,8 +127,8 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(Authentication authentication) {
-        return ResponseEntity.ok(userService.getUser(authentication.getName()));
+    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal FlowBankPrincipal principal) {
+        return ResponseEntity.ok(userService.getUser(principal.getUserId()));
     }
 
     private Authentication authenticateAndSave(
