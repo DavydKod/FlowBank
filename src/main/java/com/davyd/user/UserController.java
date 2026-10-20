@@ -1,27 +1,25 @@
 package com.davyd.user;
 
+import com.davyd.security.principal.FlowBankPrincipal;
+import com.davyd.common.exception.dto.ErrorResponse;
 import com.davyd.user.dto.request.ChangeUserNameRequest;
-import com.davyd.user.dto.request.CreateUserRequest;
 import com.davyd.user.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Positive;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Pageable;
+
 
 @Tag(
         name = "Users",
-        description = "User management"
+        description = "Current user profile management using session authentication"
 )
 @RestController
 @RequestMapping("/users")
@@ -33,145 +31,91 @@ public class UserController {
     }
 
     @Operation(
-            summary = "Get all users",
-            description = "Returns a paginated list of users"
+            summary = "Change the current user's name",
+            description = "Updates the name of the user authenticated by the session cookie. "
+                    + "Requires a valid CSRF token."
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
-                    description = "Users retrieved successfully"
-            )
-    })
-    @GetMapping
-    public ResponseEntity<Page<UserResponse>> getAllUsers(
-            @ParameterObject
-            @PageableDefault(size = 20)
-            Pageable pageable){
-        Page<UserResponse> userResponses = userService.getAllUsers(pageable);
-        return ResponseEntity.ok(userResponses);
-    }
-
-    @Operation(
-            summary = "Get user by ID",
-            description = "Returns a user associated with the specified ID"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User retrieved successfully"
+                    description = "User name updated successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = UserResponse.class))
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid user ID"
+                    description = "Invalid request or name",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication required",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Missing or invalid CSRF token",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found"
+                    description = "Current user no longer exists",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class))
             )
     })
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(
-            @Parameter(description = "User ID", example = "1")
-            @PathVariable
-            @Positive
-            long id){
-        UserResponse userResponse = userService.getUser(id);
-        return ResponseEntity.ok(userResponse);
-    }
-
-    @Operation(
-            summary = "Get user by email",
-            description = "Returns a user associated with the specified email address"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User retrieved successfully"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid email address"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "User not found"
-            )
-    })
-    @GetMapping("/by-email")
-    public ResponseEntity<UserResponse> getUserByEmail(
-            @Parameter(description = "User email address", example = "adri@gmail.com")
-            @RequestParam
-            @Email
-            String email
-    ) {
-        UserResponse userResponse = userService.getUser(email);
-        return ResponseEntity.ok(userResponse);
-    }
-
-    @Operation(
-            summary = "Change user name",
-            description = "Updates the name of the specified user"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User name updated successfully"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid user ID or name"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "User not found"
-            )
-    })
-    @PatchMapping("/{id}/name")
+    @PatchMapping("/me/name")
     public ResponseEntity<UserResponse> changeUserName(
-            @Parameter(description = "User ID", example = "1")
-            @PathVariable
-            @Positive
-            long id,
-
             @RequestBody
             @Valid
-            ChangeUserNameRequest request
+            ChangeUserNameRequest request,
+
+            @Parameter(hidden = true) @AuthenticationPrincipal FlowBankPrincipal principal
     ) {
-        UserResponse userResponse = userService.changeUserName(id, request.name());
+        UserResponse userResponse = userService.changeUserName(principal.getUserId(), request.name());
         return ResponseEntity.ok(userResponse);
     }
 
     @Operation(
-            summary = "Delete user",
-            description = "Deletes the specified user if deletion is allowed"
+            summary = "Delete the current user",
+            description = "Deletes the user authenticated by the session cookie if they have no bank accounts. "
+                    + "Requires a valid CSRF token."
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "204",
-                    description = "User deleted successfully"
+                    description = "User deleted successfully",
+                    content = @Content
             ),
             @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid user ID"
+                    responseCode = "401",
+                    description = "Authentication required",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Missing or invalid CSRF token",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found"
+                    description = "Current user no longer exists",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class))
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "User cannot be deleted because his bank accounts exist"
+                    description = "User still has bank accounts or a data integrity constraint prevents deletion",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class))
             )
     })
-    @DeleteMapping("/{id}")
+    //TODO make logout of the user out of the session after he is deleted
+    @DeleteMapping("/me")
     public ResponseEntity<Void> deleteUser(
-            @Parameter(description = "User Id", example = "1")
-            @PathVariable
-            @Positive
-            long id){
-        userService.deleteUser(id);
+            @Parameter(hidden = true) @AuthenticationPrincipal FlowBankPrincipal principal) {
+        userService.deleteUser(principal.getUserId());
         return ResponseEntity.noContent().build();
     }
-
-
 }
