@@ -23,10 +23,10 @@ public class FlowBankUserDetailsService implements UserDetailsService {
         UserCredentials userCredentials = userCredentialsRepository.findByUser_Email(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User under email " + email +
                         " not found"));
-        return User
-                .withUsername(email)
-                .password(userCredentials.getPasswordHash())
-                .authorities(Collections.emptyList())
-                .build();
+        return new FlowBankPrincipal(
+                userCredentials.getUser().getId(),
+                email,
+                userCredentials.getPasswordHash()
+        );
     }
 }
