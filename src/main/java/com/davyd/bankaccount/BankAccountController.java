@@ -33,24 +33,6 @@ public class BankAccountController {
     }
 
     @Operation(
-            summary = "Get all bank accounts",
-            description = "Returns a paginated list of all bank accounts"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Bank accounts retrieved successfully"
-            )
-    })
-    @GetMapping
-    public ResponseEntity<Page<BankAccountResponse>> getAllAccounts(
-            @ParameterObject
-            @PageableDefault(size = 20)
-            Pageable pageable) {
-        return ResponseEntity.ok(bankAccountService.getAllAccounts(pageable));
-    }
-
-    @Operation(
             summary = "Get bank account by ID",
             description = "Returns the bank account associated with the specified ID"
     )
