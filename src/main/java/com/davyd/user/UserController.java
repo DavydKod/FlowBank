@@ -11,9 +11,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
+    private final SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 
     public UserController(UserService userService){
         this.userService = userService;
@@ -111,11 +116,16 @@ public class UserController {
                             schema = @Schema(implementation = ErrorResponse.class))
             )
     })
-    //TODO make logout of the user out of the session after he is deleted
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteUser(
-            @Parameter(hidden = true) @AuthenticationPrincipal FlowBankPrincipal principal) {
+            @Parameter(hidden = true) @AuthenticationPrincipal FlowBankPrincipal principal,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            @Parameter(hidden = true) Authentication authentication) {
         userService.deleteUser(principal.getUserId());
+
+        logoutHandler.logout(request, response, authentication);
+
         return ResponseEntity.noContent().build();
     }
 }
