@@ -111,9 +111,8 @@ public class TransactionService {
             throw new IllegalArgumentException("Bank accounts cannot be the same");
         }
 
-        long fromAccountOwnerId = bankAccountRepository.findById(fromAccountId).orElseThrow(
-                () -> new BankAccountNotFoundException(fromAccountId)
-        ).getOwner().getId();
+        long fromAccountOwnerId = bankAccountRepository.findOwnerIdByAccountId(fromAccountId)
+                .orElseThrow(() -> new BankAccountNotFoundException(fromAccountId));
 
         ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId);
 
@@ -183,9 +182,8 @@ public class TransactionService {
         amount = Validation.validateMoney(amount);
         idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
 
-        long fromAccountOwnerId = bankAccountRepository.findById(fromAccountId).orElseThrow(
-                () -> new BankAccountNotFoundException(fromAccountId)
-        ).getOwner().getId();
+        long fromAccountOwnerId = bankAccountRepository.findOwnerIdByAccountId(fromAccountId).orElseThrow(
+                () -> new BankAccountNotFoundException(fromAccountId));
 
         ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId);
 
@@ -238,9 +236,8 @@ public class TransactionService {
         amount = Validation.validateMoney(amount);
         idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
 
-        long toAccountOwnerId = bankAccountRepository.findById(toAccountId).orElseThrow(
-                () -> new BankAccountNotFoundException(toAccountId)
-        ).getOwner().getId();
+        long toAccountOwnerId = bankAccountRepository.findOwnerIdByAccountId(toAccountId).orElseThrow(
+                () -> new BankAccountNotFoundException(toAccountId));
 
         ownershipValidator.requireOwner(currentUserId, toAccountOwnerId);
 
