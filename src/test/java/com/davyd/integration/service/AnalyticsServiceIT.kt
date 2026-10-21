@@ -40,38 +40,38 @@ class AnalyticsServiceIT : BaseServiceIT() {
         val account2 = bankAccountService.createAccount(user2.id())
 
         transactionService.deposit(
-            account1.id(),
+            account1.ownerId(), account1.id(),
             BigDecimal("1000.00"),
             "deposit-1"
         )
 
         transactionService.deposit(
-            account2.id(),
+            account2.ownerId(), account2.id(),
             BigDecimal("500.00"),
             "deposit-2"
         )
 
         transactionService.transfer(
-            account1.id(),
+            account1.ownerId(), account1.id(),
             account2.id(),
             BigDecimal("300.00"),
             "transfer-1"
         )
 
         transactionService.transfer(
-            account2.id(),
+            account2.ownerId(), account2.id(),
             account1.id(),
             BigDecimal("200.00"),
             "transfer-2"
         )
 
         transactionService.withdraw(
-            account1.id(),
+            account1.ownerId(), account1.id(),
             BigDecimal("100.00"),
             "withdraw-1"
         )
 
-        val result = analyticsService.getAccountAnalytics(account1.id())
+        val result = analyticsService.getAccountAnalytics(account1.ownerId(), account1.id())
 
         assertEquals(BigDecimal("400.00"), result.totalSent)
         assertEquals(BigDecimal("1200.00"), result.totalReceived)
@@ -111,7 +111,7 @@ class AnalyticsServiceIT : BaseServiceIT() {
 
         val account = bankAccountService.createAccount(user.id())
 
-        val result = analyticsService.getAccountAnalytics(account.id())
+        val result = analyticsService.getAccountAnalytics(account.ownerId(), account.id())
 
         assertEquals(BigDecimal.ZERO, result.totalSent)
         assertEquals(BigDecimal.ZERO, result.totalReceived)

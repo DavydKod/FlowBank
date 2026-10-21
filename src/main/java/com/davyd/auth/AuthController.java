@@ -3,9 +3,11 @@ package com.davyd.auth;
 import com.davyd.auth.dto.request.LoginRequest;
 import com.davyd.auth.dto.request.RegisterRequest;
 import com.davyd.common.exception.dto.ErrorResponse;
+import com.davyd.security.principal.FlowBankPrincipal;
 import com.davyd.user.UserService;
 import com.davyd.user.dto.response.UserResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,6 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
@@ -26,8 +29,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 @Tag(
-        name = "Registration",
-        description = "User Registration"
+        name = "Authentication",
+        description = "Session-based authentication, registration and current user profile"
 )
 @RestController
 @RequestMapping("/auth")
@@ -52,15 +55,28 @@ public class AuthController {
         this.userService = userService;
     }
 
+    @Operation(
+            summary = "Get a CSRF token",
+            description = "Returns a CSRF token and its header and parameter names. "
+                    + "Keep the session cookie and send the token in the indicated header for state-changing requests. "
+                    + "Fetch a new token after login or registration.",
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "CSRF token retrieved successfully",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = CsrfToken.class))
+            )
+    )
     @GetMapping("/csrf")
-    public ResponseEntity<CsrfToken> csrf(CsrfToken csrfToken){
+    public ResponseEntity<CsrfToken> csrf(@Parameter(hidden = true) CsrfToken csrfToken){
         return ResponseEntity.ok(csrfToken);
     }
 
     @Operation(
             summary = "Register a user",
             description = "Creates a user and associated credentials with a hashed password. "
-                    + "Returns the user profile without the password or password hash.",
+                    + "Authenticates the new user and saves authentication in the HTTP session. "
+                    + "Requires a valid CSRF token. Returns the user profile without the password or password hash.",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -76,8 +92,9 @@ public class AuthController {
                     ),
                     @ApiResponse(
                             responseCode = "401",
-                            description = "Authentication required by the current security configuration",
-                            content = @Content
+                            description = "Authentication after registration failed",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = ErrorResponse.class))
                     ),
                     @ApiResponse(
                             responseCode = "403",
@@ -110,6 +127,25 @@ public class AuthController {
                 .body(userResponse);
     }
 
+    @Operation(
+            summary = "Log in",
+            description = "Authenticates using email and password and saves authentication in the HTTP session. "
+                    + "Requires a valid CSRF token. Keep the JSESSIONID cookie for subsequent requests "
+                    + "and fetch a new CSRF token after successful login.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "User logged in successfully",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = UserResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Invalid login request",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = ErrorResponse.class))),
+                    @ApiResponse(responseCode = "401", description = "Authentication failed",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = ErrorResponse.class))),
+                    @ApiResponse(responseCode = "403", description = "Missing or invalid CSRF token",
+                            content = @Content)
+            }
+    )
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(
             @RequestBody
@@ -124,9 +160,25 @@ public class AuthController {
         return ResponseEntity.ok(userService.getUser(authentication.getName()));
     }
 
+    @Operation(
+            summary = "Get the current user",
+            description = "Returns the profile of the user authenticated by the session cookie.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Current user retrieved successfully",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = UserResponse.class))),
+                    @ApiResponse(responseCode = "401", description = "Authentication required",
+                            content = @Content),
+                    @ApiResponse(responseCode = "404", description = "User no longer exists",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = ErrorResponse.class)))
+            }
+    )
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(Authentication authentication) {
-        return ResponseEntity.ok(userService.getUser(authentication.getName()));
+    public ResponseEntity<UserResponse> me(
+            @Parameter(hidden = true) @AuthenticationPrincipal FlowBankPrincipal principal
+    ) {
+        return ResponseEntity.ok(userService.getUser(principal.getUserId()));
     }
 
     private Authentication authenticateAndSave(

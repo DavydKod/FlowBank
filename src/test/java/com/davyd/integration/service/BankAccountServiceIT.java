@@ -68,7 +68,7 @@ public class BankAccountServiceIT extends BaseServiceIT {
 
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
-        BankAccountResponse resultBankAccount = bankAccountService.getAccount(bankAccountResponse.id());
+        BankAccountResponse resultBankAccount = bankAccountService.getAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
         assertEquals(bankAccountResponse.id(), resultBankAccount.id());
         assertEquals(bankAccountResponse.ownerId(), resultBankAccount.ownerId());
@@ -77,7 +77,7 @@ public class BankAccountServiceIT extends BaseServiceIT {
     @Test
     void shouldThrowWhenGettingNonExistentBankAccount(){
         assertThrows(BankAccountNotFoundException.class, () ->
-                bankAccountService.getAccount(1L));
+                bankAccountService.getAccount(1L, 1L));
     }
 
     @Test
@@ -90,9 +90,9 @@ public class BankAccountServiceIT extends BaseServiceIT {
 
         assertEquals(AccountStatus.ACTIVE, bankAccountResponse.status());
 
-        bankAccountService.blockAccount(bankAccountResponse.id());
+        bankAccountService.blockAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
-        assertEquals(AccountStatus.BLOCKED, bankAccountService.getAccount(bankAccountResponse.id()).status());
+        assertEquals(AccountStatus.BLOCKED, bankAccountService.getAccount(bankAccountResponse.ownerId(), bankAccountResponse.id()).status());
     }
 
     @Test
@@ -105,10 +105,10 @@ public class BankAccountServiceIT extends BaseServiceIT {
 
         assertEquals(AccountStatus.ACTIVE, bankAccountResponse.status());
 
-        bankAccountService.blockAccount(bankAccountResponse.id());
-        bankAccountService.unblockAccount(bankAccountResponse.id());
+        bankAccountService.blockAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
+        bankAccountService.unblockAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
-        assertEquals(AccountStatus.ACTIVE, bankAccountService.getAccount(bankAccountResponse.id()).status());
+        assertEquals(AccountStatus.ACTIVE, bankAccountService.getAccount(bankAccountResponse.ownerId(), bankAccountResponse.id()).status());
     }
 
     @Test
@@ -121,73 +121,9 @@ public class BankAccountServiceIT extends BaseServiceIT {
 
         assertEquals(AccountStatus.ACTIVE, bankAccountResponse.status());
 
-        bankAccountService.closeAccount(bankAccountResponse.id());
+        bankAccountService.closeAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
-        assertEquals(AccountStatus.CLOSED, bankAccountService.getAccount(bankAccountResponse.id()).status());
-    }
-
-    @Test
-    void shouldGetAllBankAccounts(){
-        String name1 = "Davyd";
-        String email1 = "davyd@gmail.com";
-        UserResponse userResponse1 = userService.createUser(name1, email1);
-
-        String name2 = "John";
-        String email2 = "john@gmail.com";
-        UserResponse userResponse2 = userService.createUser(name2, email2);
-
-        bankAccountService.createAccount(userResponse1.id());
-        bankAccountService.createAccount(userResponse1.id());
-        bankAccountService.createAccount(userResponse1.id());
-        bankAccountService.createAccount(userResponse2.id());
-        bankAccountService.createAccount(userResponse2.id());
-
-        Pageable pageable = PageRequest.of(0, 10);
-
-        Page<BankAccountResponse> bankAccountsResponse = bankAccountService.getAllAccounts(pageable);
-
-        assertEquals(5, bankAccountsResponse.getTotalElements());
-        assertEquals(5, bankAccountsResponse.getContent().size());
-
-        assertTrue(bankAccountsResponse
-                .stream().anyMatch(bankAccount ->
-                        Objects.equals(bankAccount.ownerId(), userResponse1.id())));
-
-        assertTrue(bankAccountsResponse
-                .stream().anyMatch(bankAccount ->
-                        Objects.equals(bankAccount.ownerId(), userResponse2.id())));
-
-        assertTrue(bankAccountsResponse.stream()
-                .allMatch(bankAccount -> bankAccount.id() != null));
-
-    }
-
-    @Test
-    void shouldGetBankAccountsWithPagination(){
-        String name1 = "Davyd";
-        String email1 = "davyd@gmail.com";
-        UserResponse userResponse1 = userService.createUser(name1, email1);
-
-        String name2 = "John";
-        String email2 = "john@gmail.com";
-        UserResponse userResponse2 = userService.createUser(name2, email2);
-
-        bankAccountService.createAccount(userResponse1.id());
-        bankAccountService.createAccount(userResponse1.id());
-        bankAccountService.createAccount(userResponse1.id());
-        bankAccountService.createAccount(userResponse2.id());
-        bankAccountService.createAccount(userResponse2.id());
-
-        Pageable pageable = PageRequest.of(0, 3, Sort.by("id").ascending());
-
-        Page<BankAccountResponse> bankAccountsResponse = bankAccountService.getAllAccounts(pageable);
-
-        assertEquals(5, bankAccountsResponse.getTotalElements());
-        assertEquals(3, bankAccountsResponse.getContent().size());
-
-        assertEquals(2, bankAccountsResponse.getTotalPages());
-        assertEquals(0, bankAccountsResponse.getNumber());
-        assertTrue(bankAccountsResponse.hasNext());
+        assertEquals(AccountStatus.CLOSED, bankAccountService.getAccount(bankAccountResponse.ownerId(), bankAccountResponse.id()).status());
     }
 
     @Test
@@ -263,7 +199,7 @@ public class BankAccountServiceIT extends BaseServiceIT {
     @Test
     void shouldThrowWhenChangingDailyOutgoingLimitForNonExistentBankAccount(){
         assertThrows(BankAccountNotFoundException.class, () ->
-                bankAccountService.changeDailyOutgoingLimit(1L, new BigDecimal("1000.00")));
+                bankAccountService.changeDailyOutgoingLimit(1L, 1L, new BigDecimal("1000.00")));
     }
 
     @Test
@@ -276,7 +212,7 @@ public class BankAccountServiceIT extends BaseServiceIT {
 
         assertEquals(BankAccount.DEFAULT_DAILY_OUTGOING_LIMIT, bankAccountResponse.dailyOutgoingLimit());
 
-        BankAccountResponse response = bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("2550.00"));
+        BankAccountResponse response = bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("2550.00"));
 
         assertEquals(new BigDecimal("2550.00"), response.dailyOutgoingLimit());
     }
@@ -289,15 +225,15 @@ public class BankAccountServiceIT extends BaseServiceIT {
 
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
-        bankAccountService.blockAccount(bankAccountResponse.id());
+        bankAccountService.blockAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
         assertThrows(InvalidAccountStatusException.class, () ->
-                bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("1300.00")));
+                bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("1300.00")));
 
-        bankAccountService.closeAccount(bankAccountResponse.id());
+        bankAccountService.closeAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
         assertThrows(InvalidAccountStatusException.class, () ->
-                bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("1340.00")));
+                bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("1340.00")));
 
     }
 }

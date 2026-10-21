@@ -3,6 +3,7 @@ package com.davyd.analytics
 import com.davyd.bankaccount.BankAccountRepository
 import com.davyd.analytics.dto.AccountAnalytics
 import com.davyd.bankaccount.exception.BankAccountNotFoundException
+import com.davyd.security.authorization.OwnershipValidator
 import com.davyd.transaction.TransactionRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Isolation
@@ -13,16 +14,19 @@ import java.math.RoundingMode
 @Service
 class AnalyticsService (
     private val transactionRepository: TransactionRepository,
-    private val bankAccountRepository: BankAccountRepository
+    private val bankAccountRepository: BankAccountRepository,
+    private val ownershipValidator: OwnershipValidator
 ){
     @Transactional(
         readOnly = true,
         isolation = Isolation.REPEATABLE_READ
     )
-    fun getAccountAnalytics(accountId: Long): AccountAnalytics {
-        if (!bankAccountRepository.existsById(accountId)) {
-            throw BankAccountNotFoundException(accountId)
-        }
+    fun getAccountAnalytics(currentUserId: Long, accountId: Long): AccountAnalytics {
+        val ownerId: Long = bankAccountRepository.findById(accountId)
+            .orElseThrow{BankAccountNotFoundException(accountId)}
+            .owner.id
+
+        ownershipValidator.requireOwner(currentUserId, ownerId)
 
         val totalSent: BigDecimal = transactionRepository.getTotalSent(accountId)
 

@@ -43,7 +43,6 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
     void shouldThrowWhenIncorrectIdempotencyKeyForConcurrentDeposit() throws Exception {
         UserResponse user = userService.createUser("Davyd", "davyd@gmail.com");
         BankAccountResponse account1 = bankAccountService.createAccount(user.id());
-        BankAccountResponse account2 = bankAccountService.createAccount(user.id());
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
@@ -54,14 +53,14 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
                 .findByIdempotencyKey(anyString());
 
         // It will throw even with identical transactions (different idempotency keys) (instead of
-        // returning a transaction) because it's an exception at the lowest layer
+        // returning a transaction) because it's an exception catching at the lowest layer
         try {
             Future<TransactionResponse> future1 = executor.submit(() -> {
-                return transactionService.deposit(account1.id(), BigDecimal.valueOf(300).setScale(2), "duplicate-key");
+                return transactionService.deposit(account1.ownerId(), account1.id(), BigDecimal.valueOf(300).setScale(2), "duplicate-key");
             });
 
             Future<TransactionResponse> future2 = executor.submit(() -> {
-                return transactionService.deposit(account2.id(), BigDecimal.valueOf(300).setScale(2), "duplicate-key");
+                return transactionService.deposit(account1.ownerId(), account1.id(), BigDecimal.valueOf(300).setScale(2), "duplicate-key");
 
             });
 
@@ -98,11 +97,11 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
     }
 
     @Test
-    void shouldThrowWhenIncorrectIdempotencyKeyForConcurrentWithdrawal() throws Exception {
+    void shouldThrowWhenIncorrectIdempotencyKeyForConcurrentWithdrawal() throws Exception {//TODO
         UserResponse user = userService.createUser("Davyd", "davyd@gmail.com");
-        BankAccountResponse account = bankAccountService.createAccount(user.id());
+        BankAccountResponse account1 = bankAccountService.createAccount(user.id());
 
-        transactionService.deposit(account.id(), new BigDecimal("450.00"), "key1");
+        transactionService.deposit(account1.ownerId(), account1.id(), new BigDecimal("450.00"), "key1");
 
         clearInvocations(transactionRepository, bankAccountRepository);
 
@@ -115,14 +114,14 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
                 .findByIdempotencyKey(anyString());
 
         // It will throw even with identical transactions (different idempotency keys) (instead of
-        // returning a transaction) because it's an exception at the lowest layer
+        // returning a transaction) because it's an exception catching at the lowest layer
         try {
             Future<TransactionResponse> future1 = executor.submit(() ->
-                transactionService.withdraw(account.id(), new BigDecimal("200.00"), "duplicate-key")
+                transactionService.withdraw(account1.ownerId(), account1.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             Future<TransactionResponse> future2 = executor.submit(() ->
-                    transactionService.withdraw(account.id(), new BigDecimal("200.00"), "duplicate-key")
+                    transactionService.withdraw(account1.ownerId(), account1.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             int successful = 0;
@@ -158,15 +157,14 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
     }
 
     @Test
-    void shouldThrowWhenIncorrectIdempotencyKeyForConcurrentTransfer() throws Exception {
+    void shouldThrowWhenIncorrectIdempotencyKeyForConcurrentTransfer() throws Exception {//TODO
         UserResponse user1 = userService.createUser("Davyd", "davyd@gmail.com");
         UserResponse user2 = userService.createUser("Alex", "alex@gmail.com");
 
         BankAccountResponse account1 = bankAccountService.createAccount(user1.id());
         BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
 
-        transactionService.deposit(account1.id(), new BigDecimal("500.00"), "key-1");
-        transactionService.deposit(account2.id(), new BigDecimal("500.00"), "key-2");
+        transactionService.deposit(account1.ownerId(), account1.id(), new BigDecimal("500.00"), "key-1");
 
         clearInvocations(transactionRepository, bankAccountRepository);
 
@@ -179,14 +177,14 @@ public class TransactionServiceConcurrencyIT extends BaseServiceIT {
                 .findByIdempotencyKey(anyString());
 
         // It will throw even with identical transactions (different idempotency keys) (instead of
-        // returning a transaction) because it's an exception at the lowest layer
+        // returning a transaction) because it's an exception catching at the lowest layer
         try {
             Future<TransactionResponse> future1 = executor.submit(() ->
-                    transactionService.transfer(account1.id(), account2.id(), new BigDecimal("200.00"), "duplicate-key")
+                    transactionService.transfer(account1.ownerId(), account1.id(), account2.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             Future<TransactionResponse> future2 = executor.submit(() ->
-                    transactionService.transfer(account1.id(), account2.id(), new BigDecimal("200.00"), "duplicate-key")
+                    transactionService.transfer(account1.ownerId(), account1.id(), account2.id(), new BigDecimal("200.00"), "duplicate-key")
             );
 
             int successful = 0;

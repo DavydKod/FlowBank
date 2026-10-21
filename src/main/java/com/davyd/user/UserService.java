@@ -7,11 +7,9 @@ import com.davyd.user.exception.UserNotFoundException;
 import com.davyd.bankaccount.BankAccountRepository;
 import com.davyd.common.util.Validation;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
 
 import org.springframework.stereotype.Service;
 
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -26,6 +24,7 @@ public class UserService {
     }
 
     public UserResponse getUser(long id) {
+
         User user = userRepository.findById(id)
                 .orElseThrow(
                         () -> new UserNotFoundException(id)
@@ -41,17 +40,12 @@ public class UserService {
                 );
     }
 
-    public UserResponse getUser(String email){
+    public UserResponse getUser(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(
                 () -> new UserNotFoundException(email));
 
 
         return UserMapper.toResponse(user);
-    }
-
-    public Page<UserResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(UserMapper::toResponse);
     }
 
     @Transactional
@@ -72,8 +66,8 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse changeUserName(long id, String newName) {
-        User user = getUserEntity(id);
+    public UserResponse changeUserName(long currentUserId, String newName) {
+        User user = getUserEntity(currentUserId);
 
         user.changeName(newName);
 
@@ -81,10 +75,10 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUser(long id) {
-        User user = getUserEntity(id);
+    public void deleteUser(long currentUserId) {
+        User user = getUserEntity(currentUserId);
 
-        if (bankAccountRepository.existsByOwnerId(id)){
+        if (bankAccountRepository.existsByOwnerId(currentUserId)){
             throw new UserDeletionNotAllowedException("Impossible to delete user with bankAccount");
         }
 
@@ -98,13 +92,5 @@ public class UserService {
 
             throw e;
         }
-    }
-
-    public boolean existsById(long id) {
-        return userRepository.existsById(id);
-    }
-
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
     }
 }

@@ -4,6 +4,11 @@ import com.davyd.bankaccount.exception.BankAccountNotFoundException
 import com.davyd.bankaccount.BankAccountRepository
 import com.davyd.transaction.TransactionRepository
 import com.davyd.analytics.AnalyticsService
+import com.davyd.bankaccount.BankAccount
+import com.davyd.user.User
+import com.davyd.security.authorization.OwnershipValidator
+import org.springframework.test.util.ReflectionTestUtils
+import java.util.Optional
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -29,7 +34,8 @@ class AnalyticsServiceTest {
     fun setUp() {
         analyticsService = AnalyticsService(
             transactionRepository,
-            bankAccountRepository
+            bankAccountRepository,
+            OwnershipValidator()
         )
     }
 
@@ -37,8 +43,12 @@ class AnalyticsServiceTest {
     fun `should calculate account analytics`() {
         val accountId = 1L
 
-        whenever(bankAccountRepository.existsById(accountId))
-            .thenReturn(true)
+        val owner = User("Davyd", "davyd@gmail.com")
+        ReflectionTestUtils.setField(owner, "id", 1L)
+        val account = BankAccount(owner)
+
+        whenever(bankAccountRepository.findById(accountId))
+            .thenReturn(Optional.of(account))
 
         whenever(transactionRepository.getTotalSent(accountId))
             .thenReturn(BigDecimal("600.00"))
@@ -58,7 +68,7 @@ class AnalyticsServiceTest {
         whenever(transactionRepository.getLargestReceivedTransaction(accountId))
             .thenReturn(BigDecimal("600.00"))
 
-        val result = analyticsService.getAccountAnalytics(accountId)
+        val result = analyticsService.getAccountAnalytics(1L, accountId)
 
         assertEquals(accountId, result.accountId)
         assertEquals(BigDecimal("600.00"), result.totalSent)
@@ -93,8 +103,12 @@ class AnalyticsServiceTest {
     fun `should return zero averages when account has no transactions`() {
         val accountId = 1L
 
-        whenever(bankAccountRepository.existsById(accountId))
-            .thenReturn(true)
+        val owner = User("Davyd", "davyd@gmail.com")
+        ReflectionTestUtils.setField(owner, "id", 1L)
+        val account = BankAccount(owner)
+
+        whenever(bankAccountRepository.findById(accountId))
+            .thenReturn(Optional.of(account))
 
         whenever(transactionRepository.getTotalSent(accountId))
             .thenReturn(BigDecimal.ZERO)
@@ -114,7 +128,7 @@ class AnalyticsServiceTest {
         whenever(transactionRepository.getLargestReceivedTransaction(accountId))
             .thenReturn(null)
 
-        val result = analyticsService.getAccountAnalytics(accountId)
+        val result = analyticsService.getAccountAnalytics(1L, accountId)
 
         assertEquals(0L, result.transactionCount)
         assertEquals(0L, result.sentTransactionCount)
@@ -138,8 +152,12 @@ class AnalyticsServiceTest {
     fun `should round average transaction amounts to two decimal places`() {
         val accountId = 1L
 
-        whenever(bankAccountRepository.existsById(accountId))
-            .thenReturn(true)
+        val owner = User("Davyd", "davyd@gmail.com")
+        ReflectionTestUtils.setField(owner, "id", 1L)
+        val account = BankAccount(owner)
+
+        whenever(bankAccountRepository.findById(accountId))
+            .thenReturn(Optional.of(account))
 
         whenever(transactionRepository.getTotalSent(accountId))
             .thenReturn(BigDecimal("100.00"))
@@ -159,7 +177,7 @@ class AnalyticsServiceTest {
         whenever(transactionRepository.getLargestReceivedTransaction(accountId))
             .thenReturn(BigDecimal("100.00"))
 
-        val result = analyticsService.getAccountAnalytics(accountId)
+        val result = analyticsService.getAccountAnalytics(1L, accountId)
 
         assertEquals(
             BigDecimal("33.33"),
@@ -176,11 +194,11 @@ class AnalyticsServiceTest {
     fun `should throw when account does not exist`() {
         val accountId = 999L
 
-        whenever(bankAccountRepository.existsById(accountId))
-            .thenReturn(false)
+        whenever(bankAccountRepository.findById(accountId))
+            .thenReturn(Optional.empty())
 
         assertThrows<BankAccountNotFoundException> {
-            analyticsService.getAccountAnalytics(accountId)
+            analyticsService.getAccountAnalytics(1L, accountId)
         }
     }
 }

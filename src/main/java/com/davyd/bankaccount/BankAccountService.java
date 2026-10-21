@@ -2,6 +2,7 @@ package com.davyd.bankaccount;
 
 import com.davyd.bankaccount.dto.response.BankAccountResponse;
 import com.davyd.bankaccount.exception.BankAccountNotFoundException;
+import com.davyd.security.authorization.OwnershipValidator;
 import com.davyd.user.exception.UserNotFoundException;
 import com.davyd.user.User;
 import com.davyd.user.UserRepository;
@@ -19,11 +20,14 @@ import java.math.BigDecimal;
 public class BankAccountService {
     private final BankAccountRepository bankAccountRepository;
     private final UserRepository userRepository;
+    private final OwnershipValidator ownershipValidator;
 
     public BankAccountService(BankAccountRepository bankAccountRepository,
-                              UserRepository userRepository){
+                              UserRepository userRepository,
+                              OwnershipValidator ownershipValidator){
         this.bankAccountRepository = bankAccountRepository;
         this.userRepository = userRepository;
+        this.ownershipValidator = ownershipValidator;
     }
 
     @Transactional
@@ -44,9 +48,11 @@ public class BankAccountService {
         }
     }
 
-    public BankAccountResponse getAccount(long id) {
+    public BankAccountResponse getAccount(long currentUserId, long id) {
         BankAccount account = bankAccountRepository.findById(id)
                 .orElseThrow(() -> new BankAccountNotFoundException(id));
+
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
 
         return BankAccountMapper.toResponse(account);
     }
@@ -54,12 +60,6 @@ public class BankAccountService {
     private BankAccount getAccountEntity(long id) {
         return bankAccountRepository.findById(id)
                 .orElseThrow(() -> new BankAccountNotFoundException(id));
-    }
-
-    public Page<BankAccountResponse> getAllAccounts(Pageable pageable) {
-
-        return bankAccountRepository.findAll(pageable)
-                .map(BankAccountMapper::toResponse);
     }
 
     public Page<BankAccountResponse> getAccountsByOwner(long ownerId, Pageable pageable) {
@@ -72,31 +72,43 @@ public class BankAccountService {
     }
 
     @Transactional
-    public BankAccountResponse blockAccount(long accountId) {
+    public BankAccountResponse blockAccount(long currentUserId, long accountId) {
         BankAccount account = getAccountEntity(accountId);
+
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
+
         account.blockAccount();
         return BankAccountMapper.toResponse(account);
     }
 
     @Transactional
-    public BankAccountResponse unblockAccount(long accountId) {
+    public BankAccountResponse unblockAccount(long currentUserId, long accountId) {
         BankAccount account = getAccountEntity(accountId);
+
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
+
         account.unblockAccount();
         return BankAccountMapper.toResponse(account);
     }
 
     @Transactional
-    public BankAccountResponse closeAccount(long accountId) {
+    public BankAccountResponse closeAccount(long currentUserId, long accountId) {
         BankAccount account = getAccountEntity(accountId);
+
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
+
         account.closeAccount();
         return BankAccountMapper.toResponse(account);
     }
 
     @Transactional
-    public BankAccountResponse changeDailyOutgoingLimit(long accountId, BigDecimal newLimit){
+    public BankAccountResponse changeDailyOutgoingLimit(long currentUserId, long accountId, BigDecimal newLimit){
         Validation.validateMoney(newLimit);
 
         BankAccount bankAccount = getAccountEntity(accountId);
+
+        ownershipValidator.requireOwner(currentUserId, bankAccount.getOwner().getId());
+
         bankAccount.changeDailyOutgoingLimit(newLimit);
         return BankAccountMapper.toResponse(bankAccount);
     }

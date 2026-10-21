@@ -17,7 +17,8 @@ import com.davyd.transaction.TransactionService;
 import com.davyd.user.UserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.test.context.support.WithMockUser;
+import com.davyd.security.principal.FlowBankPrincipal;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.http.MediaType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WithMockUser(username = "controller-test@example.com")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -69,89 +69,6 @@ class TransactionControllerIT {
         userRepository.deleteAll();
     }
 
-    // =========================================================
-    // GET /transactions
-    // =========================================================
-
-    @Test
-    void shouldGetAllTransactions() throws Exception {
-        UserResponse user =
-                userService.createUser("Davyd", "davyd@gmail.com");
-
-        BankAccountResponse account =
-                bankAccountService.createAccount(user.id());
-
-        transactionService.deposit(
-                account.id(),
-                new BigDecimal("500.00"),
-                "key-1"
-        );
-
-        transactionService.withdraw(
-                account.id(),
-                new BigDecimal("100.00"),
-                "key-2"
-        );
-
-        mockMvc.perform(get("/transactions"))
-                .andExpect(status().isOk())
-                .andExpect(content()
-                        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.size").value(20));
-    }
-
-    @Test
-    void shouldReturnEmptyPageWhenNoTransactionsExist() throws Exception {
-        mockMvc.perform(get("/transactions"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content").isEmpty())
-                .andExpect(jsonPath("$.totalElements").value(0));
-    }
-
-    @Test
-    void shouldGetTransactionsWithCustomPagination() throws Exception {
-        UserResponse user =
-                userService.createUser("Davyd", "davyd@gmail.com");
-
-        BankAccountResponse account =
-                bankAccountService.createAccount(user.id());
-
-        transactionService.deposit(
-                account.id(),
-                new BigDecimal("100.00"),
-                "key-1"
-        );
-
-        transactionService.deposit(
-                account.id(),
-                new BigDecimal("200.00"),
-                "key-2"
-        );
-
-        transactionService.deposit(
-                account.id(),
-                new BigDecimal("300.00"),
-                "key-3"
-        );
-
-        mockMvc.perform(get("/transactions")
-                        .param("page", "0")
-                        .param("size", "2"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.number").value(0))
-                .andExpect(jsonPath("$.size").value(2))
-                .andExpect(jsonPath("$.totalElements").value(3))
-                .andExpect(jsonPath("$.totalPages").value(2));
-    }
-
-    // =========================================================
-    // GET /transactions/{id}
-    // =========================================================
-
     @Test
     void shouldGetTransactionById() throws Exception {
         UserResponse user =
@@ -162,7 +79,7 @@ class TransactionControllerIT {
 
         TransactionResponse transaction =
                 transactionService.deposit(
-                        account.id(),
+                        account.ownerId(), account.id(),
                         new BigDecimal("500.00"),
                         "key-1"
                 );
@@ -170,7 +87,8 @@ class TransactionControllerIT {
         mockMvc.perform(get(
                         "/transactions/{id}",
                         transaction.id()
-                ))
+                )
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(transaction.id()))
                 .andExpect(jsonPath("$.toAccountId").value(account.id()))
@@ -181,7 +99,8 @@ class TransactionControllerIT {
     void shouldReturn404WhenTransactionDoesNotExist()
             throws Exception {
 
-        mockMvc.perform(get("/transactions/{id}", 999999L))
+        mockMvc.perform(get("/transactions/{id}", 999999L)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
@@ -193,15 +112,12 @@ class TransactionControllerIT {
     void shouldReturn400WhenTransactionIdIsNotPositive()
             throws Exception {
 
-        mockMvc.perform(get("/transactions/{id}", 0))
+        mockMvc.perform(get("/transactions/{id}", 0)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"));
     }
-
-    // =========================================================
-    // GET /transactions/by-account/{accountId}
-    // =========================================================
 
     @Test
     void shouldGetTransactionsByAccount() throws Exception {
@@ -212,13 +128,13 @@ class TransactionControllerIT {
                 bankAccountService.createAccount(user.id());
 
         transactionService.deposit(
-                account.id(),
+                account.ownerId(), account.id(),
                 new BigDecimal("500.00"),
                 "key-1"
         );
 
         transactionService.withdraw(
-                account.id(),
+                account.ownerId(), account.id(),
                 new BigDecimal("100.00"),
                 "key-2"
         );
@@ -226,7 +142,8 @@ class TransactionControllerIT {
         mockMvc.perform(get(
                         "/transactions/by-account/{accountId}",
                         account.id()
-                ))
+                )
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.totalElements").value(2));
@@ -244,13 +161,13 @@ class TransactionControllerIT {
                 bankAccountService.createAccount(user.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("500.00"),
                 "deposit"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("100.00"),
                 "transfer"
@@ -260,6 +177,7 @@ class TransactionControllerIT {
                         "/transactions/by-account/{accountId}",
                         account1.id()
                 )
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .param("direction", "FROM"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
@@ -278,19 +196,19 @@ class TransactionControllerIT {
                 bankAccountService.createAccount(user.id());
 
         transactionService.deposit(
-                account.id(),
+                account.ownerId(), account.id(),
                 new BigDecimal("100.00"),
                 "key-1"
         );
 
         transactionService.deposit(
-                account.id(),
+                account.ownerId(), account.id(),
                 new BigDecimal("500.00"),
                 "key-2"
         );
 
         transactionService.deposit(
-                account.id(),
+                account.ownerId(), account.id(),
                 new BigDecimal("200.00"),
                 "key-3"
         );
@@ -299,6 +217,7 @@ class TransactionControllerIT {
                         "/transactions/by-account/{accountId}",
                         account.id()
                 )
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .param("sortingMethod", "AMOUNT_DESC"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].amount").value(500.00))
@@ -313,7 +232,8 @@ class TransactionControllerIT {
         mockMvc.perform(get(
                         "/transactions/by-account/{accountId}",
                         999999L
-                ))
+                )
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -325,7 +245,8 @@ class TransactionControllerIT {
         mockMvc.perform(get(
                         "/transactions/by-account/{accountId}",
                         0
-                ))
+                )
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -344,13 +265,10 @@ class TransactionControllerIT {
                         "/transactions/by-account/{accountId}",
                         account.id()
                 )
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .param("direction", "INVALID"))
                 .andExpect(status().isBadRequest());
     }
-
-    // =========================================================
-    // POST /transactions/deposit
-    // =========================================================
 
     @Test
     void shouldDepositMoney() throws Exception {
@@ -367,6 +285,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "deposit-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -378,7 +297,7 @@ class TransactionControllerIT {
         assertEquals(1, transactionRepository.count());
 
         BankAccountResponse changed =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(
                 0,
@@ -399,6 +318,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "deposit-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -425,6 +345,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "deposit-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -448,19 +369,16 @@ class TransactionControllerIT {
                         new BigDecimal("500.00")
                 );
 
-        bankAccountService.blockAccount(account.id());
+        bankAccountService.blockAccount(account.ownerId(), account.id());
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
-
-    // =========================================================
-    // POST /transactions/withdraw
-    // =========================================================
 
     @Test
     void shouldWithdrawMoney() throws Exception {
@@ -471,7 +389,7 @@ class TransactionControllerIT {
                 bankAccountService.createAccount(user.id());
 
         transactionService.deposit(
-                account.id(),
+                account.ownerId(), account.id(),
                 new BigDecimal("500.00"),
                 "setup-deposit"
         );
@@ -483,6 +401,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/withdraw")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "withdraw-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -492,7 +411,7 @@ class TransactionControllerIT {
                 .andExpect(jsonPath("$.amount").value(150.00));
 
         BankAccountResponse changed =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(
                 0,
@@ -513,7 +432,7 @@ class TransactionControllerIT {
                 bankAccountService.createAccount(user.id());
 
         transactionService.deposit(
-                account.id(),
+                account.ownerId(), account.id(),
                 new BigDecimal("500.00"),
                 "setup-deposit"
         );
@@ -525,6 +444,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/withdraw")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "withdraw-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -549,6 +469,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/withdraw")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "withdraw-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -572,19 +493,16 @@ class TransactionControllerIT {
                         new BigDecimal("500.00")
                 );
 
-        bankAccountService.closeAccount(account.id());
+        bankAccountService.closeAccount(account.ownerId(), account.id());
 
         mockMvc.perform(post("/transactions/withdraw")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
-
-    // =========================================================
-    // POST /transactions/transfer
-    // =========================================================
 
     @Test
     void shouldTransferMoney() throws Exception {
@@ -598,7 +516,7 @@ class TransactionControllerIT {
                 bankAccountService.createAccount(user.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("1000.00"),
                 "setup-deposit"
         );
@@ -611,6 +529,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "transfer-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -623,10 +542,10 @@ class TransactionControllerIT {
                 .andExpect(jsonPath("$.amount").value(250.00));
 
         BankAccountResponse changedFrom =
-                bankAccountService.getAccount(fromAccount.id());
+                bankAccountService.getAccount(fromAccount.ownerId(), fromAccount.id());
 
         BankAccountResponse changedTo =
-                bankAccountService.getAccount(toAccount.id());
+                bankAccountService.getAccount(toAccount.ownerId(), toAccount.id());
 
         assertEquals(
                 0,
@@ -661,6 +580,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "transfer-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -687,6 +607,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "transfer-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -694,10 +615,6 @@ class TransactionControllerIT {
 
         assertEquals(0, transactionRepository.count());
     }
-
-    // =========================================================
-    // Idempotency-Key
-    // =========================================================
 
     @Test
     void shouldReturn400WhenIdempotencyKeyIsMissing()
@@ -716,6 +633,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest());
@@ -740,6 +658,7 @@ class TransactionControllerIT {
                 );
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", " ")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -767,6 +686,7 @@ class TransactionControllerIT {
         String tooLongKey = "a".repeat(101);
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", tooLongKey)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -795,12 +715,14 @@ class TransactionControllerIT {
                 objectMapper.writeValueAsString(request);
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson).with(csrf()))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson).with(csrf()))
@@ -809,7 +731,7 @@ class TransactionControllerIT {
         assertEquals(1, transactionRepository.count());
 
         BankAccountResponse changed =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(
                 0,
@@ -827,8 +749,8 @@ class TransactionControllerIT {
         BankAccountResponse bankAccountResponse1 = bankAccountService.createAccount(userResponse1.id());
         BankAccountResponse bankAccountResponse2 = bankAccountService.createAccount(userResponse2.id());
 
-        transactionService.deposit(bankAccountResponse1.id(), new BigDecimal("1000.00"), "key1");
-        transactionService.deposit(bankAccountResponse2.id(), new BigDecimal("1000.00"), "key2");
+        transactionService.deposit(bankAccountResponse1.ownerId(), bankAccountResponse1.id(), new BigDecimal("1000.00"), "key1");
+        transactionService.deposit(bankAccountResponse2.ownerId(), bankAccountResponse2.id(), new BigDecimal("1000.00"), "key2");
 
         CreateTransferTransactionRequest request1 =
                 new CreateTransferTransactionRequest(bankAccountResponse1.id(), bankAccountResponse2.id(),
@@ -839,6 +761,7 @@ class TransactionControllerIT {
                         new BigDecimal("150.00"));
 
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request1)).with(csrf()))
@@ -851,16 +774,13 @@ class TransactionControllerIT {
                 .andExpect(jsonPath("$.createdAt").exists());
 
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "same-key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request2)).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
-
-    // =========================================================
-    // Daily Outgoing Limit
-    // =========================================================
 
     @Test
     void shouldReturn409WhenDailyOutgoingLimitExceeding() throws Exception {
@@ -870,8 +790,8 @@ class TransactionControllerIT {
         BankAccountResponse bankAccountResponse1 = bankAccountService.createAccount(userResponse1.id());
         BankAccountResponse bankAccountResponse2 = bankAccountService.createAccount(userResponse2.id());
 
-        transactionService.deposit(bankAccountResponse1.id(), new BigDecimal("1500.00"), "key1");
-        transactionService.deposit(bankAccountResponse2.id(), new BigDecimal("1500.00"), "key2");
+        transactionService.deposit(bankAccountResponse1.ownerId(), bankAccountResponse1.id(), new BigDecimal("1500.00"), "key1");
+        transactionService.deposit(bankAccountResponse2.ownerId(), bankAccountResponse2.id(), new BigDecimal("1500.00"), "key2");
 
         CreateExternalTransactionRequest request =
                 new CreateExternalTransactionRequest(bankAccountResponse1.id(),
@@ -882,6 +802,7 @@ class TransactionControllerIT {
                         new BigDecimal("700.00"));
 
         mockMvc.perform(post("/transactions/withdraw")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -894,6 +815,7 @@ class TransactionControllerIT {
                 .andExpect(jsonPath("$.createdAt").exists());
 
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)).with(csrf()))
@@ -909,7 +831,7 @@ class TransactionControllerIT {
         BankAccountResponse bankAccountResponse1 = bankAccountService.createAccount(userResponse1.id());
         BankAccountResponse bankAccountResponse2 = bankAccountService.createAccount(userResponse2.id());
 
-        transactionService.deposit(bankAccountResponse2.id(), new BigDecimal("1500.00"), "key2");
+        transactionService.deposit(bankAccountResponse2.ownerId(), bankAccountResponse2.id(), new BigDecimal("1500.00"), "key2");
 
         CreateExternalTransactionRequest request =
                 new CreateExternalTransactionRequest(bankAccountResponse1.id(),
@@ -924,6 +846,7 @@ class TransactionControllerIT {
                         new BigDecimal("600.00"));
 
         mockMvc.perform(post("/transactions/deposit")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Dep-Key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(depositRequest)).with(csrf()))
@@ -936,6 +859,7 @@ class TransactionControllerIT {
                 .andExpect(jsonPath("$.createdAt").exists());
 
         mockMvc.perform(post("/transactions/withdraw")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -947,8 +871,8 @@ class TransactionControllerIT {
                 .andExpect(jsonPath("$.amount").value("450.0"))
                 .andExpect(jsonPath("$.createdAt").exists());
 
-
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key2")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)).with(csrf()))
@@ -964,8 +888,8 @@ class TransactionControllerIT {
         BankAccountResponse bankAccountResponse1 = bankAccountService.createAccount(userResponse1.id());
         BankAccountResponse bankAccountResponse2 = bankAccountService.createAccount(userResponse2.id());
 
-        transactionService.deposit(bankAccountResponse1.id(), new BigDecimal("1500.00"), "key1");
-        transactionService.deposit(bankAccountResponse2.id(), new BigDecimal("1500.00"), "key2");
+        transactionService.deposit(bankAccountResponse1.ownerId(), bankAccountResponse1.id(), new BigDecimal("1500.00"), "key1");
+        transactionService.deposit(bankAccountResponse2.ownerId(), bankAccountResponse2.id(), new BigDecimal("1500.00"), "key2");
 
         CreateExternalTransactionRequest request =
                 new CreateExternalTransactionRequest(bankAccountResponse1.id(),
@@ -976,6 +900,7 @@ class TransactionControllerIT {
                         new BigDecimal("700.00"));
 
         mockMvc.perform(post("/transactions/withdraw")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key3")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
@@ -991,6 +916,7 @@ class TransactionControllerIT {
                 new ChangeBankAccountDailyOutgoingLimitRequest(new BigDecimal("1600.00"));
 
         mockMvc.perform(patch("/accounts/{id}/dailyOutgoingLimit", bankAccountResponse1.id())
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Other-Key")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(changeRequest)).with(csrf()))
@@ -1002,6 +928,7 @@ class TransactionControllerIT {
                 .andExpect(jsonPath("$.status").value(AccountStatus.ACTIVE.name()));
 
         mockMvc.perform(post("/transactions/transfer")
+                        .with(user(new FlowBankPrincipal(userResponse1.id(), "controller-test@example.com", "unused")))
                         .header("Idempotency-Key", "Key4")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)).with(csrf()))
