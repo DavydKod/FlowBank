@@ -21,6 +21,7 @@ import com.davyd.bankaccount.OutgoingTransactionsLimitService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import com.davyd.security.authorization.OwnershipValidator;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -54,6 +55,9 @@ public class TransactionServiceTest {
             Instant.parse("2026-08-25T12:00:00Z"),
             ZoneOffset.UTC);
 
+    @Spy
+    private OwnershipValidator ownershipValidator = new OwnershipValidator();
+
     @InjectMocks
     private TransactionService transactionService;
 
@@ -68,7 +72,7 @@ public class TransactionServiceTest {
                 TransactionMapper.toResponse(transaction);
 
         TransactionResponse result =
-                transactionService.getTransactionById(1L);
+                transactionService.getTransactionById(1L,1L);
 
         assertEquals(expected, result);
 
@@ -82,37 +86,10 @@ public class TransactionServiceTest {
 
         assertThrows(
                 TransactionNotFoundException.class,
-                () -> transactionService.getTransactionById(1L)
+                () -> transactionService.getTransactionById(1L,1L)
         );
 
         verify(transactionRepository).findById(1L);
-    }
-
-    @Test
-    void shouldGetAllTransactions() {
-        Pageable pageable = PageRequest.of(0, 20);
-
-        Transaction transaction1 = createTransaction();
-        Transaction transaction2 = createTransaction();
-
-        Page<Transaction> transactions =
-                new PageImpl<>(List.of(transaction1, transaction2),
-                        pageable,
-                        2);
-
-        when(transactionRepository.findAll(pageable))
-                .thenReturn(transactions);
-
-        Page<TransactionResponse> expected = transactions
-                .map(TransactionMapper::toResponse);
-
-        Page<TransactionResponse> result =
-                transactionService.getAllTransactions(pageable);
-
-        assertEquals(expected, result);
-        assertEquals(2, result.getTotalElements());
-
-        verify(transactionRepository).findAll(pageable);
     }
 
     @Test
@@ -135,8 +112,8 @@ public class TransactionServiceTest {
 
         );
 
-        when(bankAccountRepository.existsById(accountId))
-                .thenReturn(true);
+        when(bankAccountRepository.findById(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount()));
 
         when(transactionRepository.findByFromAccount_Id(accountId, pageable))
                 .thenReturn(transactions);
@@ -145,7 +122,7 @@ public class TransactionServiceTest {
                 .map(TransactionMapper::toResponse);
 
         Page<TransactionResponse> result =
-                transactionService.getTransactionsByAccount(
+                transactionService.getTransactionsByAccount(1L,
                         accountId,
                         TransactionDirection.FROM,
                         TransactionSortingMethod.CREATED_AT_DESC,
@@ -154,7 +131,7 @@ public class TransactionServiceTest {
 
         assertEquals(expected, result);
 
-        verify(bankAccountRepository).existsById(accountId);
+        verify(bankAccountRepository).findById(accountId);
 
         verify(transactionRepository)
                 .findByFromAccount_Id(accountId, pageable);
@@ -180,8 +157,8 @@ public class TransactionServiceTest {
 
         );
 
-        when(bankAccountRepository.existsById(accountId))
-                .thenReturn(true);
+        when(bankAccountRepository.findById(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount()));
 
         when(transactionRepository.findByToAccount_Id(accountId, pageable))
                 .thenReturn(transactions);
@@ -190,7 +167,7 @@ public class TransactionServiceTest {
                 .map(TransactionMapper::toResponse);
 
         Page<TransactionResponse> result =
-                transactionService.getTransactionsByAccount(
+                transactionService.getTransactionsByAccount(1L,
                         accountId,
                         TransactionDirection.TO,
                         TransactionSortingMethod.AMOUNT_ASC,
@@ -199,7 +176,7 @@ public class TransactionServiceTest {
 
         assertEquals(expected, result);
 
-        verify(bankAccountRepository).existsById(accountId);
+        verify(bankAccountRepository).findById(accountId);
 
         verify(transactionRepository)
                 .findByToAccount_Id(accountId, pageable);
@@ -225,8 +202,8 @@ public class TransactionServiceTest {
 
         );
 
-        when(bankAccountRepository.existsById(accountId))
-                .thenReturn(true);
+        when(bankAccountRepository.findById(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount()));
 
         when(transactionRepository.findByFromAccount_IdOrToAccount_Id(
                 accountId,
@@ -238,7 +215,7 @@ public class TransactionServiceTest {
                 .map(TransactionMapper::toResponse);
 
         Page<TransactionResponse> result =
-                transactionService.getTransactionsByAccount(
+                transactionService.getTransactionsByAccount(1L,
                         accountId,
                         null,
                         null,
@@ -247,7 +224,7 @@ public class TransactionServiceTest {
 
         assertEquals(expected, result);
 
-        verify(bankAccountRepository).existsById(accountId);
+        verify(bankAccountRepository).findById(accountId);
 
         verify(transactionRepository)
                 .findByFromAccount_IdOrToAccount_Id(
@@ -263,12 +240,12 @@ public class TransactionServiceTest {
 
         Pageable pageable = PageRequest.of(0, 20);
 
-        when(bankAccountRepository.existsById(accountId))
-                .thenReturn(false);
+        when(bankAccountRepository.findById(accountId))
+                .thenReturn(Optional.empty());
 
         assertThrows(
                 BankAccountNotFoundException.class,
-                () -> transactionService.getTransactionsByAccount(
+                () -> transactionService.getTransactionsByAccount(1L,
                         accountId,
                         TransactionDirection.FROM,
                         TransactionSortingMethod.CREATED_AT_DESC,
@@ -293,6 +270,7 @@ public class TransactionServiceTest {
     @Test
     void shouldUseDefaultSortingWhenSortingMethodIsNull() {
         long accountId = 1L;
+        Transaction transaction = createTransaction();
 
         Sort expectedSort = Sort.by(
                 Sort.Direction.DESC,
@@ -302,15 +280,15 @@ public class TransactionServiceTest {
         Pageable inputPageable = PageRequest.of(0, 20);
         Pageable expectedPageable = PageRequest.of(0, 20, expectedSort);
 
-        when(bankAccountRepository.existsById(accountId))
-                .thenReturn(true);
+        when(bankAccountRepository.findById(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount()));
 
         when(transactionRepository.findByFromAccount_Id(
                 accountId,
                 expectedPageable
         )).thenReturn(Page.empty(expectedPageable));
 
-        transactionService.getTransactionsByAccount(
+        transactionService.getTransactionsByAccount(1L,
                 accountId,
                 TransactionDirection.FROM,
                 null,
@@ -327,9 +305,14 @@ public class TransactionServiceTest {
     @Test
     void shouldProvideCorrectTransfer(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(200));
@@ -344,7 +327,7 @@ public class TransactionServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         TransactionResponse response =
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(150), "key");
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(150), "key");
 
         assertEquals(BigDecimal.valueOf(50), accountFrom.getBalance());
         assertEquals(BigDecimal.valueOf(500), accountTo.getBalance());
@@ -360,7 +343,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenFromAndToAccountSame(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(1L, 1L, BigDecimal.valueOf(150), "key"));
+                transactionService.transfer(1L, 1L, 1L, BigDecimal.valueOf(150), "key"));
 
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transactionRepository);
@@ -369,9 +352,14 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenAccountBlocked(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(200));
@@ -385,7 +373,7 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(accountTo));
 
         assertThrows(InvalidAccountStatusException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100), "key"));
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(100), "key"));
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -394,9 +382,14 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenAccountClosed(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountTo.deposit(BigDecimal.valueOf(350));
@@ -409,7 +402,7 @@ public class TransactionServiceTest {
         accountFrom.closeAccount();
 
         assertThrows(InvalidAccountStatusException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100), "key"));
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(100), "key"));
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -418,7 +411,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenNegativeAmount(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(-50), "key"));
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(-50), "key"));
 
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transactionRepository);
@@ -427,7 +420,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenZeroAmount(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(0), "key"));
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(0), "key"));
 
         verifyNoInteractions(bankAccountRepository);
         verifyNoInteractions(transactionRepository);
@@ -436,9 +429,14 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenNotEnoughMoney(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(50));
@@ -450,24 +448,25 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(accountTo));
 
         assertThrows(InsufficientFundsException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(100), "key"));
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(100), "key"));
     }
 
     @Test
     void shouldThrowWhenFromAccountNotFound(){
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountTo = new BankAccount(userTo);
 
         accountTo.deposit(BigDecimal.valueOf(100));
 
-        when(bankAccountRepository.findByIdForUpdate(1L))
+        when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.empty());
 
         assertThrows(BankAccountNotFoundException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50), "key"));
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(50), "key"));
 
-        verify(bankAccountRepository).findByIdForUpdate(1L);
+        verify(bankAccountRepository).findById(1L);
         verify(bankAccountRepository, never()).findByIdForUpdate(2L);
         verify(transactionRepository, never()).save(any());
     }
@@ -475,8 +474,12 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenToAccountNotFound(){
         User userFrom = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
 
         accountFrom.deposit(BigDecimal.valueOf(100));
 
@@ -486,7 +489,7 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(BankAccountNotFoundException.class, () ->
-                transactionService.transfer(1L, 2L, BigDecimal.valueOf(50), "key"));
+                transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(50), "key"));
 
         verify(bankAccountRepository).findByIdForUpdate(1L);
         verify(bankAccountRepository).findByIdForUpdate(2L);
@@ -496,7 +499,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenTransferAmountHasIncorrectScale(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(1L, 2L,
+                transactionService.transfer(1L, 1L, 2L,
                         BigDecimal.valueOf(50.089), "key"));
 
         verifyNoInteractions(bankAccountRepository);
@@ -508,11 +511,13 @@ public class TransactionServiceTest {
                 "Davyd",
                 "davyd@gmail.com"
         );
+        ReflectionTestUtils.setField(sender, "id", 1L);
 
         User receiver = new User(
                 "Receiver",
                 "receiver@gmail.com"
         );
+        ReflectionTestUtils.setField(receiver, "id", 2L);
 
         BankAccount fromAccount = new BankAccount(sender);
         BankAccount toAccount = new BankAccount(receiver);
@@ -530,9 +535,14 @@ public class TransactionServiceTest {
     @Test
     void shouldRejectTransferWhenDailyLimitWouldBeExceeded() {
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(900));
@@ -557,7 +567,7 @@ public class TransactionServiceTest {
 
         assertThrows(
                 DailyTransferLimitExceededException.class,
-                () -> transactionService.transfer(
+                () -> transactionService.transfer(1L,
                         1L,
                         2L,
                         transferAmount,
@@ -590,7 +600,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenIdempotencyKeyNull(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(2L, 1L, BigDecimal.valueOf(100), null));
+                transactionService.transfer(1L, 2L, 1L, BigDecimal.valueOf(100), null));
 
         verifyNoInteractions(transactionRepository);
         verifyNoInteractions(bankAccountRepository);
@@ -600,7 +610,7 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenIdempotencyKeyBlank(){
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(2L, 1L,
+                transactionService.transfer(1L, 2L, 1L,
                         BigDecimal.valueOf(100), "    "));
 
         verifyNoInteractions(transactionRepository);
@@ -611,9 +621,14 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenIdenticalIdempotencyKeysButDifferentAmounts(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         ReflectionTestUtils.setField(accountFrom, "id", 1L);
@@ -632,10 +647,11 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(transaction));
 
         assertThrows(IdempotencyKeyConflictException.class, () ->
-                transactionService.transfer(1L, 2L, transferAmount, "key"));
+                transactionService.transfer(1L, 1L, 2L, transferAmount, "key"));
 
         verifyNoInteractions(transferLimitService);
-        verifyNoInteractions(bankAccountRepository);
+        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -644,11 +660,17 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenIdenticalIdempotencyKeysButDifferentFromIds(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         User anotherUserFrom = new User("Davyd", "dav@gmail.com");
+        ReflectionTestUtils.setField(anotherUserFrom, "id", 1L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         BankAccount anotherAccountFrom = new BankAccount(anotherUserFrom);
@@ -670,10 +692,11 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(transaction));
 
         assertThrows(IdempotencyKeyConflictException.class, () ->
-                transactionService.transfer(1L, 2L, transferAmount, "key"));
+                transactionService.transfer(1L, 1L, 2L, transferAmount, "key"));
 
         verifyNoInteractions(transferLimitService);
-        verifyNoInteractions(bankAccountRepository);
+        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -682,11 +705,17 @@ public class TransactionServiceTest {
     @Test
     void shouldThrowWhenIdenticalIdempotencyKeysButDifferentToIds(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         User anotherUserTo = new User("Davyd", "dav@gmail.com");
+        ReflectionTestUtils.setField(anotherUserTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         BankAccount anotherAccountTo = new BankAccount(anotherUserTo);
@@ -708,10 +737,11 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(transaction));
 
         assertThrows(IdempotencyKeyConflictException.class, () ->
-                transactionService.transfer(1L, 2L, transferAmount, "key"));
+                transactionService.transfer(1L, 1L, 2L, transferAmount, "key"));
 
         verifyNoInteractions(transferLimitService);
-        verifyNoInteractions(bankAccountRepository);
+        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -720,9 +750,14 @@ public class TransactionServiceTest {
     @Test
     void shouldReturnPreviousTransactionWhenIdempotencyKeysAndValuesIdentical(){
         User userFrom = new User("Joel", "joel@gmail.com");
+        ReflectionTestUtils.setField(userFrom, "id", 1L);
         User userTo = new User("Adriana", "adri@gmail.com");
+        ReflectionTestUtils.setField(userTo, "id", 2L);
 
         BankAccount accountFrom = new BankAccount(userFrom);
+
+        when(bankAccountRepository.findById(1L))
+                .thenReturn(Optional.of(accountFrom));
         BankAccount accountTo = new BankAccount(userTo);
 
         ReflectionTestUtils.setField(accountFrom, "id", 1L);
@@ -743,7 +778,7 @@ public class TransactionServiceTest {
                 .thenReturn(Optional.of(transaction));
 
         TransactionResponse transactionResponse =
-                transactionService.transfer(1L, 2L, transferAmount, "key");
+                transactionService.transfer(1L, 1L, 2L, transferAmount, "key");
 
         assertEquals(1L, transactionResponse.id());
         assertEquals(1L, transactionResponse.fromAccountId());
@@ -751,7 +786,8 @@ public class TransactionServiceTest {
         assertEquals(BigDecimal.valueOf(150), transactionResponse.amount());
 
         verifyNoInteractions(transferLimitService);
-        verifyNoInteractions(bankAccountRepository);
+        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
                 .save(any(Transaction.class));
@@ -766,7 +802,7 @@ public class TransactionServiceTest {
         String exceededKey = keyBuilder.toString();
 
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.transfer(2L, 1L,
+                transactionService.transfer(1L, 2L, 1L,
                         BigDecimal.valueOf(100), exceededKey));
 
         verifyNoInteractions(transactionRepository);
@@ -776,6 +812,6 @@ public class TransactionServiceTest {
 
     @Test
     void shouldThrowWhenExceedingBigDecimalLimitsInTransfer(){
-        assertThrows(IllegalArgumentException.class, () -> transactionService.transfer(1L, 2L, BigDecimal.valueOf(100000000000000000L), "key"));
+        assertThrows(IllegalArgumentException.class, () -> transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(100000000000000000L), "key"));
     }
 }

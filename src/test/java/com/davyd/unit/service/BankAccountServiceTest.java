@@ -11,9 +11,12 @@ import com.davyd.bankaccount.BankAccountRepository;
 import com.davyd.user.UserRepository;
 import com.davyd.bankaccount.BankAccountService;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import com.davyd.security.authorization.OwnershipValidator;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -34,6 +37,9 @@ class BankAccountServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Spy
+    private OwnershipValidator ownershipValidator = new OwnershipValidator();
 
     @InjectMocks
     private BankAccountService bankAccountService;
@@ -86,7 +92,7 @@ class BankAccountServiceTest {
                 .thenReturn(Optional.of(account));
 
         BankAccountResponse result =
-                bankAccountService.getAccount(1L);
+                bankAccountService.getAccount(1L, 1L);
 
         assertEquals(account.getId(), result.id());
         assertEquals(owner.getId(), result.ownerId());
@@ -103,7 +109,7 @@ class BankAccountServiceTest {
 
         assertThrows(
                 BankAccountNotFoundException.class,
-                () -> bankAccountService.getAccount(1L)
+                () -> bankAccountService.getAccount(1L, 1L)
         );
 
         verify(bankAccountRepository).findById(1L);
@@ -172,13 +178,14 @@ class BankAccountServiceTest {
     @Test
     void shouldBlockAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
         BankAccount account = new BankAccount(owner);
 
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
         BankAccountResponse result =
-                bankAccountService.blockAccount(1L);
+                bankAccountService.blockAccount(1L, 1L);
 
         assertEquals(AccountStatus.BLOCKED, result.status());
         assertEquals(AccountStatus.BLOCKED, account.getStatus());
@@ -189,6 +196,7 @@ class BankAccountServiceTest {
     @Test
     void shouldUnblockAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
         BankAccount account = new BankAccount(owner);
 
         account.blockAccount();
@@ -197,7 +205,7 @@ class BankAccountServiceTest {
                 .thenReturn(Optional.of(account));
 
         BankAccountResponse result =
-                bankAccountService.unblockAccount(1L);
+                bankAccountService.unblockAccount(1L, 1L);
 
         assertEquals(AccountStatus.ACTIVE, result.status());
         assertEquals(AccountStatus.ACTIVE, account.getStatus());
@@ -208,6 +216,7 @@ class BankAccountServiceTest {
     @Test
     void shouldThrowWhenUnblockingActiveAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
         BankAccount account = new BankAccount(owner);
 
         when(bankAccountRepository.findById(1L))
@@ -215,7 +224,7 @@ class BankAccountServiceTest {
 
         assertThrows(
                 InvalidAccountStatusException.class,
-                () -> bankAccountService.unblockAccount(1L)
+                () -> bankAccountService.unblockAccount(1L, 1L)
         );
 
         assertEquals(AccountStatus.ACTIVE, account.getStatus());
@@ -226,13 +235,14 @@ class BankAccountServiceTest {
     @Test
     void shouldCloseActiveAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
         BankAccount account = new BankAccount(owner);
 
         when(bankAccountRepository.findById(1L))
                 .thenReturn(Optional.of(account));
 
         BankAccountResponse result =
-                bankAccountService.closeAccount(1L);
+                bankAccountService.closeAccount(1L, 1L);
 
         assertEquals(AccountStatus.CLOSED, result.status());
         assertEquals(AccountStatus.CLOSED, account.getStatus());
@@ -243,6 +253,7 @@ class BankAccountServiceTest {
     @Test
     void shouldCloseBlockedAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
         BankAccount account = new BankAccount(owner);
 
         account.blockAccount();
@@ -251,7 +262,7 @@ class BankAccountServiceTest {
                 .thenReturn(Optional.of(account));
 
         BankAccountResponse result =
-                bankAccountService.closeAccount(1L);
+                bankAccountService.closeAccount(1L, 1L);
 
         assertEquals(AccountStatus.CLOSED, result.status());
         assertEquals(AccountStatus.CLOSED, account.getStatus());
@@ -262,6 +273,7 @@ class BankAccountServiceTest {
     @Test
     void shouldThrowWhenBlockingClosedAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
         BankAccount account = new BankAccount(owner);
 
         account.closeAccount();
@@ -271,7 +283,7 @@ class BankAccountServiceTest {
 
         assertThrows(
                 InvalidAccountStatusException.class,
-                () -> bankAccountService.blockAccount(1L)
+                () -> bankAccountService.blockAccount(1L, 1L)
         );
 
         assertEquals(AccountStatus.CLOSED, account.getStatus());
@@ -282,6 +294,7 @@ class BankAccountServiceTest {
     @Test
     void shouldThrowWhenUnblockingClosedAccount() {
         User owner = new User("Davyd", "davyd@gmail.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
         BankAccount account = new BankAccount(owner);
 
         account.closeAccount();
@@ -291,7 +304,7 @@ class BankAccountServiceTest {
 
         assertThrows(
                 InvalidAccountStatusException.class,
-                () -> bankAccountService.unblockAccount(1L)
+                () -> bankAccountService.unblockAccount(1L, 1L)
         );
 
         assertEquals(AccountStatus.CLOSED, account.getStatus());
