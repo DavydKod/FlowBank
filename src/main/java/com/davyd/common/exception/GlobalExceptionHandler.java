@@ -11,6 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,6 +29,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(new ErrorResponse(
                 status.value(), status.getReasonPhrase(),
                 "Invalid email or password", LocalDateTime.now()
+        ));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
+            AccessDeniedException exception
+    ) {
+        HttpStatus status = HttpStatus.FORBIDDEN;
+
+        return ResponseEntity.status(status).body(new ErrorResponse(
+                status.value(),
+                status.getReasonPhrase(),
+                "Access denied",
+                LocalDateTime.now()
         ));
     }
 
