@@ -1,5 +1,6 @@
 package com.davyd.transaction;
 
+import com.davyd.security.authorization.OwnershipValidator;
 import com.davyd.transaction.dto.response.TransactionResponse;
 import com.davyd.bankaccount.exception.BankAccountNotFoundException;
 import com.davyd.transaction.exception.IdempotencyKeyConflictException;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,34 +33,45 @@ public class TransactionService {
     private final BankAccountRepository bankAccountRepository;
     private final OutgoingTransactionsLimitService transferLimitService;
     private final Clock clock;
+    private final OwnershipValidator ownershipValidator;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             BankAccountRepository bankAccountRepository,
             OutgoingTransactionsLimitService transferLimitService,
-            Clock clock
+            Clock clock,
+            OwnershipValidator ownershipValidator
     ) {
         this.transactionRepository = transactionRepository;
         this.bankAccountRepository = bankAccountRepository;
         this.transferLimitService = transferLimitService;
         this.clock = clock;
+        this.ownershipValidator = ownershipValidator;
     }
 
-    public TransactionResponse getTransactionById(long id) {
+    public TransactionResponse getTransactionById(long currentUserId, long id) {
         Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new TransactionNotFoundException(id));
+
+        boolean ownsFromAccount = transaction.getFromAccount() != null
+                && transaction.getFromAccount().getOwner().getId() == currentUserId;
+
+        boolean ownsToAccount = transaction.getToAccount() != null
+                && transaction.getToAccount().getOwner().getId() == currentUserId;
+
+        if (!ownsFromAccount && !ownsToAccount) {
+            throw new AccessDeniedException("Access denied");
+        }
 
         return TransactionMapper.toResponse(transaction);
     }
 
-    public Page<TransactionResponse> getAllTransactions(Pageable pageable) {
-        return transactionRepository.findAll(pageable)
-                .map(TransactionMapper::toResponse);
-    }
-
-    public Page<TransactionResponse> getTransactionsByAccount(long accountId, TransactionDirection direction,
+    public Page<TransactionResponse> getTransactionsByAccount(long currentUserId, long accountId, TransactionDirection direction,
                                                               TransactionSortingMethod sortingMethod, Pageable pageable) {
-        validateAccountExists(accountId);
+        long accountOwnerId = bankAccountRepository.findById(accountId).orElseThrow(
+                () -> new BankAccountNotFoundException(accountId)).getOwner().getId();
+
+        ownershipValidator.requireOwner(currentUserId, accountOwnerId);
 
         Sort sort = getSortMethod(sortingMethod);
 
@@ -83,14 +96,9 @@ public class TransactionService {
                 ).map(TransactionMapper::toResponse);
     }
 
-    private void validateAccountExists(long accountId) {
-        if (!bankAccountRepository.existsById(accountId)) {
-            throw new BankAccountNotFoundException(accountId);
-        }
-    }
-
     @Transactional
     public TransactionResponse transfer(
+            long currentUserId,
             long fromAccountId,
             long toAccountId,
             BigDecimal amount,
@@ -102,6 +110,12 @@ public class TransactionService {
         if (fromAccountId == toAccountId){
             throw new IllegalArgumentException("Bank accounts cannot be the same");
         }
+
+        long fromAccountOwnerId = bankAccountRepository.findById(fromAccountId).orElseThrow(
+                () -> new BankAccountNotFoundException(fromAccountId)
+        ).getOwner().getId();
+
+        ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId);
 
         // First check of idempotency key, that is optional
         // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
@@ -165,10 +179,15 @@ public class TransactionService {
     }
 
     @Transactional
-    public TransactionResponse withdraw(long fromAccountId, BigDecimal amount, String idempotencyKey){
+    public TransactionResponse withdraw(long currentUserId, long fromAccountId, BigDecimal amount, String idempotencyKey){
         amount = Validation.validateMoney(amount);
         idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
 
+        long fromAccountOwnerId = bankAccountRepository.findById(fromAccountId).orElseThrow(
+                () -> new BankAccountNotFoundException(fromAccountId)
+        ).getOwner().getId();
+
+        ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId);
 
         // First check of idempotency key, that is optional
         // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
@@ -215,10 +234,15 @@ public class TransactionService {
     }
 
     @Transactional
-    public TransactionResponse deposit(long toAccountId, BigDecimal amount, String idempotencyKey){
+    public TransactionResponse deposit(long currentUserId, long toAccountId, BigDecimal amount, String idempotencyKey){
         amount = Validation.validateMoney(amount);
         idempotencyKey = Validation.validateIdempotencyKey(idempotencyKey);
 
+        long toAccountOwnerId = bankAccountRepository.findById(toAccountId).orElseThrow(
+                () -> new BankAccountNotFoundException(toAccountId)
+        ).getOwner().getId();
+
+        ownershipValidator.requireOwner(currentUserId, toAccountOwnerId);
 
         // First check of idempotency key, that is optional
         // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
@@ -237,7 +261,7 @@ public class TransactionService {
         existingTransactionWithKey = transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransactionWithKey.isPresent()){
-            return handleExisting(existingTransactionWithKey.get(), toAccountId, null, amount);
+            return handleExisting(existingTransactionWithKey.get(), null, toAccountId, amount);
         }
 
         bankAccount.deposit(amount);
