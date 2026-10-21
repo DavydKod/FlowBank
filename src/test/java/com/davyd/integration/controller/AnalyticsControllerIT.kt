@@ -7,7 +7,8 @@ import com.davyd.bankaccount.BankAccountRepository
 import com.davyd.user.UserRepository
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.springframework.security.test.context.support.WithMockUser
+import com.davyd.security.principal.FlowBankPrincipal
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -16,7 +17,6 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 
-@WithMockUser(username = "controller-test@example.com")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration::class)
@@ -47,7 +47,9 @@ class AnalyticsControllerIT {
             BankAccount(user)
         )
 
-        mockMvc.get("/analytics/accounts/{id}", account.id)
+        mockMvc.get("/analytics/accounts/{id}", account.id) {
+            with(user(FlowBankPrincipal(user.id!!, user.email, "unused")))
+        }
             .andExpect {
                 status { isOk() }
                 content {
@@ -78,7 +80,9 @@ class AnalyticsControllerIT {
 
     @Test
     fun shouldReturn404WhenBankAccountDoesNotExist() {
-        mockMvc.get("/analytics/accounts/{id}", 999999L)
+        mockMvc.get("/analytics/accounts/{id}", 999999L) {
+            with(user(FlowBankPrincipal(999999L, "controller-test@example.com", "unused")))
+        }
             .andExpect {
                 status { isNotFound() }
 
@@ -102,7 +106,9 @@ class AnalyticsControllerIT {
 
     @Test
     fun shouldReturn400WhenBankAccountIdIsNotPositive() {
-        mockMvc.get("/analytics/accounts/{id}", 0)
+        mockMvc.get("/analytics/accounts/{id}", 0) {
+            with(user(FlowBankPrincipal(999999L, "controller-test@example.com", "unused")))
+        }
             .andExpect {
                 status { isBadRequest() }
 

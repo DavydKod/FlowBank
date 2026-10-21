@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.davyd.security.principal.FlowBankPrincipal;
 
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
@@ -35,11 +36,31 @@ class AuthSessionTest {
     @MockitoBean AuthenticationManager authenticationManager;
 
     private void successfulAuthentication() {
-        when(authenticationManager.authenticate(any())).thenReturn(
-                UsernamePasswordAuthenticationToken.authenticated("test@example.com", null, List.of())
+        FlowBankPrincipal principal = new FlowBankPrincipal(
+                42L,
+                "test@example.com",
+                "unused"
         );
+
+        when(authenticationManager.authenticate(any())).thenReturn(
+                UsernamePasswordAuthenticationToken.authenticated(
+                        principal,
+                        null,
+                        principal.getAuthorities()
+                )
+        );
+
+        UserResponse response = new UserResponse(
+                42L,
+                "Tester",
+                "test@example.com"
+        );
+
         when(userService.getUser("test@example.com"))
-                .thenReturn(new UserResponse(42L, "Tester", "test@example.com"));
+                .thenReturn(response);
+
+        when(userService.getUser(42L))
+                .thenReturn(response);
     }
 
     @Test

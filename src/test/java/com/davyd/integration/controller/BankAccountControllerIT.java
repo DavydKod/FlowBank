@@ -1,7 +1,6 @@
 package com.davyd.integration.controller;
 
 import com.davyd.bankaccount.dto.request.ChangeBankAccountDailyOutgoingLimitRequest;
-import com.davyd.bankaccount.dto.request.CreateBankAccountRequest;
 import com.davyd.bankaccount.dto.response.BankAccountResponse;
 import com.davyd.user.dto.response.UserResponse;
 import com.davyd.integration.TestcontainersConfiguration;
@@ -13,7 +12,8 @@ import com.davyd.user.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.test.context.support.WithMockUser;
+import com.davyd.security.principal.FlowBankPrincipal;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WithMockUser(username = "controller-test@example.com")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -58,12 +57,8 @@ class BankAccountControllerIT {
         userRepository.deleteAll();
     }
 
-    // =========================================================
-    // GET /accounts
-    // =========================================================
-
     @Test
-    void shouldGetAllAccounts() throws Exception {
+    void shouldGetCurrentUserAccounts() throws Exception {
         UserResponse user =
                 userService.createUser("Davyd", "davyd@gmail.com");
 
@@ -73,7 +68,8 @@ class BankAccountControllerIT {
         BankAccountResponse account2 =
                 bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(get("/accounts"))
+        mockMvc.perform(get("/accounts/me")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))))
                 .andExpect(status().isOk())
                 .andExpect(content()
                         .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -84,7 +80,9 @@ class BankAccountControllerIT {
 
     @Test
     void shouldReturnEmptyPageWhenNoAccountsExist() throws Exception {
-        mockMvc.perform(get("/accounts"))
+        UserResponse user = userService.createUser("Davyd", "davyd@gmail.com");
+        mockMvc.perform(get("/accounts/me")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content").isEmpty())
@@ -100,7 +98,8 @@ class BankAccountControllerIT {
         bankAccountService.createAccount(user.id());
         bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(get("/accounts")
+        mockMvc.perform(get("/accounts/me")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .param("page", "0")
                         .param("size", "2"))
                 .andExpect(status().isOk())
@@ -111,10 +110,6 @@ class BankAccountControllerIT {
                 .andExpect(jsonPath("$.totalPages").value(2));
     }
 
-    // =========================================================
-    // GET /accounts/{id}
-    // =========================================================
-
     @Test
     void shouldGetAccountById() throws Exception {
         UserResponse user =
@@ -123,7 +118,8 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(get("/accounts/{id}", account.id()))
+        mockMvc.perform(get("/accounts/{id}", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))))
                 .andExpect(status().isOk())
                 .andExpect(content()
                         .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -136,7 +132,8 @@ class BankAccountControllerIT {
 
     @Test
     void shouldReturn404WhenAccountDoesNotExist() throws Exception {
-        mockMvc.perform(get("/accounts/{id}", 999999L))
+        mockMvc.perform(get("/accounts/{id}", 999999L)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
@@ -146,17 +143,14 @@ class BankAccountControllerIT {
 
     @Test
     void shouldReturn400WhenAccountIdIsNotPositive() throws Exception {
-        mockMvc.perform(get("/accounts/{id}", 0))
+        mockMvc.perform(get("/accounts/{id}", 0)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").isNotEmpty())
                 .andExpect(jsonPath("$.createdAt").exists());
     }
-
-    // =========================================================
-    // GET /accounts/by-owner/{ownerId}
-    // =========================================================
 
     @Test
     void shouldGetAccountsByOwner() throws Exception {
@@ -172,7 +166,8 @@ class BankAccountControllerIT {
 
         bankAccountService.createAccount(user2.id());
 
-        mockMvc.perform(get("/accounts/by-owner/{ownerId}", user1.id()))
+        mockMvc.perform(get("/accounts/me")
+                        .with(user(new FlowBankPrincipal(user1.id(), "controller-test@example.com", "unused"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.totalElements").value(2))
@@ -189,7 +184,8 @@ class BankAccountControllerIT {
         bankAccountService.createAccount(user.id());
         bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(get("/accounts/by-owner/{ownerId}", user.id())
+        mockMvc.perform(get("/accounts/me")
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .param("page", "0")
                         .param("size", "2"))
                 .andExpect(status().isOk())
@@ -202,35 +198,21 @@ class BankAccountControllerIT {
 
     @Test
     void shouldReturn404WhenOwnerDoesNotExist() throws Exception {
-        mockMvc.perform(get("/accounts/by-owner/{ownerId}", 999999L))
+        mockMvc.perform(get("/accounts/me")
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"));
     }
 
     @Test
-    void shouldReturn400WhenOwnerIdIsNotPositive() throws Exception {
-        mockMvc.perform(get("/accounts/by-owner/{ownerId}", 0))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"));
-    }
-
-    // =========================================================
-    // POST /accounts
-    // =========================================================
-
-    @Test
     void shouldCreateAccount() throws Exception {
         UserResponse user =
                 userService.createUser("Davyd", "davyd@gmail.com");
 
-        CreateBankAccountRequest request =
-                new CreateBankAccountRequest(user.id());
-
         mockMvc.perform(post("/accounts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
+                        .with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(content()
                         .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -247,39 +229,15 @@ class BankAccountControllerIT {
     void shouldReturn404WhenCreatingAccountForNonExistingOwner()
             throws Exception {
 
-        CreateBankAccountRequest request =
-                new CreateBankAccountRequest(999999L);
-
         mockMvc.perform(post("/accounts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused")))
+                        .with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"));
 
         assertEquals(0, bankAccountRepository.count());
     }
-
-    @Test
-    void shouldReturn400WhenCreatingAccountWithInvalidOwnerId()
-            throws Exception {
-
-        CreateBankAccountRequest request =
-                new CreateBankAccountRequest(0L);
-
-        mockMvc.perform(post("/accounts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"));
-
-        assertEquals(0, bankAccountRepository.count());
-    }
-
-    // =========================================================
-    // PATCH /accounts/{id}/block
-    // =========================================================
 
     @Test
     void shouldBlockAccount() throws Exception {
@@ -289,20 +247,22 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(patch("/accounts/{id}/block", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/block", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(account.id()))
                 .andExpect(jsonPath("$.status").value("BLOCKED"));
 
         BankAccountResponse changed =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(AccountStatus.BLOCKED, changed.status());
     }
 
     @Test
     void shouldReturn404WhenBlockingNonExistingAccount() throws Exception {
-        mockMvc.perform(patch("/accounts/{id}/block", 999999L).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/block", 999999L)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -311,7 +271,8 @@ class BankAccountControllerIT {
     void shouldReturn400WhenBlockingAccountWithInvalidId()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/block", 0).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/block", 0)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -326,22 +287,20 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        bankAccountService.blockAccount(account.id());
+        bankAccountService.blockAccount(account.ownerId(), account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/block", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/block", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
 
-        bankAccountService.closeAccount(account.id());
+        bankAccountService.closeAccount(account.ownerId(), account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/block", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/block", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
-
-    // =========================================================
-    // PATCH /accounts/{id}/unblock
-    // =========================================================
 
     @Test
     void shouldUnblockAccount() throws Exception {
@@ -351,15 +310,16 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        bankAccountService.blockAccount(account.id());
+        bankAccountService.blockAccount(account.ownerId(), account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(account.id()))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
         BankAccountResponse changed =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(AccountStatus.ACTIVE, changed.status());
     }
@@ -368,7 +328,8 @@ class BankAccountControllerIT {
     void shouldReturn404WhenUnblockingNonExistingAccount()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", 999999L).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", 999999L)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -377,7 +338,8 @@ class BankAccountControllerIT {
     void shouldReturn400WhenUnblockingAccountWithInvalidId()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", 0).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", 0)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -392,21 +354,18 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-
-        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
 
-        bankAccountService.closeAccount(account.id());
+        bankAccountService.closeAccount(account.ownerId(), account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/unblock", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/unblock", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
-
-    // =========================================================
-    // PATCH /accounts/{id}/close
-    // =========================================================
 
     @Test
     void shouldCloseAccount() throws Exception {
@@ -416,13 +375,14 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        mockMvc.perform(patch("/accounts/{id}/close", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/close", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(account.id()))
                 .andExpect(jsonPath("$.status").value("CLOSED"));
 
         BankAccountResponse changed =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(AccountStatus.CLOSED, changed.status());
     }
@@ -431,7 +391,8 @@ class BankAccountControllerIT {
     void shouldReturn404WhenClosingNonExistingAccount()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/close", 999999L).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/close", 999999L)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -440,7 +401,8 @@ class BankAccountControllerIT {
     void shouldReturn400WhenClosingAccountWithInvalidId()
             throws Exception {
 
-        mockMvc.perform(patch("/accounts/{id}/close", 0).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/close", 0)
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -455,16 +417,13 @@ class BankAccountControllerIT {
         BankAccountResponse account =
                 bankAccountService.createAccount(user.id());
 
-        bankAccountService.closeAccount(account.id());
+        bankAccountService.closeAccount(account.ownerId(), account.id());
 
-        mockMvc.perform(patch("/accounts/{id}/close", account.id()).with(csrf()))
+        mockMvc.perform(patch("/accounts/{id}/close", account.id())
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
     }
-
-    // =========================================================
-    // PATCH /accounts/{id}/dailyOutgoingLimit
-    // =========================================================
 
     @Test
     void shouldChangeDailyOutgoingLimit() throws Exception {
@@ -483,6 +442,7 @@ class BankAccountControllerIT {
                         "/accounts/{id}/dailyOutgoingLimit",
                         account.id()
                 )
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isOk())
@@ -490,7 +450,7 @@ class BankAccountControllerIT {
                 .andExpect(jsonPath("$.dailyOutgoingLimit").value(500.00));
 
         BankAccountResponse changed =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(
                 0,
@@ -512,6 +472,7 @@ class BankAccountControllerIT {
                         "/accounts/{id}/dailyOutgoingLimit",
                         999999L
                 )
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isNotFound())
@@ -531,6 +492,7 @@ class BankAccountControllerIT {
                         "/accounts/{id}/dailyOutgoingLimit",
                         0
                 )
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
@@ -556,6 +518,7 @@ class BankAccountControllerIT {
                         "/accounts/{id}/dailyOutgoingLimit",
                         account.id()
                 )
+                        .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
@@ -563,7 +526,7 @@ class BankAccountControllerIT {
                 .andExpect(jsonPath("$.error").value("Bad Request"));
 
         BankAccountResponse unchanged =
-                bankAccountService.getAccount(account.id());
+                bankAccountService.getAccount(account.ownerId(), account.id());
 
         assertEquals(
                 0,

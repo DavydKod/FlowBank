@@ -27,8 +27,6 @@ import org.springframework.data.domain.Sort;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -50,7 +48,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
         TransactionResponse transactionResponse =
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal("100.00"), "key");
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("100.00"), "key");
 
         assertNotNull(transactionResponse.id());
         assertNull(transactionResponse.fromAccountId());
@@ -58,7 +56,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertEquals(bankAccountResponse.id(), transactionResponse.toAccountId());
         assertEquals(new BigDecimal("100.00"), transactionResponse.amount());
 
-        BankAccountResponse resultAccount = bankAccountService.getAccount(bankAccountResponse.id());
+        BankAccountResponse resultAccount = bankAccountService.getAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
         assertEquals(transactionResponse.amount(), resultAccount.balance());
     }
@@ -69,12 +67,12 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
-        transactionService.deposit(bankAccountResponse.id(), new BigDecimal("100.00"), "key");
+        transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("100.00"), "key");
 
         TransactionResponse transactionResponse =
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("60.00"), "key2");
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("60.00"), "key2");
 
-        BankAccountResponse resultAccount = bankAccountService.getAccount(bankAccountResponse.id());
+        BankAccountResponse resultAccount = bankAccountService.getAccount(bankAccountResponse.ownerId(), bankAccountResponse.id());
 
         assertEquals(TransactionType.WITHDRAWAL, transactionResponse.type());
         assertEquals(new BigDecimal("40.00"), resultAccount.balance());
@@ -87,19 +85,19 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
         assertThrows(InsufficientFundsException.class, () ->
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("100.00"), "key"));
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("100.00"), "key"));
     }
 
     @Test
     void shouldThrowWhenWithdrawalAccountNotExist(){
         assertThrows(BankAccountNotFoundException.class, () ->
-                transactionService.withdraw(1L, new BigDecimal("45.50") , "key"));
+                transactionService.withdraw(1L, 1L, new BigDecimal("45.50") , "key"));
     }
 
     @Test
     void shouldThrowWhenDepositAccountNotExist(){
         assertThrows(BankAccountNotFoundException.class, () ->
-                transactionService.deposit(1L, new BigDecimal("45.50") , "key"));
+                transactionService.deposit(1L, 1L, new BigDecimal("45.50") , "key"));
     }
 
     @Test
@@ -109,13 +107,13 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.withdraw(bankAccountResponse.id(), null , "key"));
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), null , "key"));
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("0.00") , "key"));
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("0.00") , "key"));
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("-5.00") , "key"));
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("-5.00") , "key"));
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("15.000") , "key"));
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("15.000") , "key"));
     }
 
     @Test
@@ -125,13 +123,13 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.deposit(bankAccountResponse.id(), null , "key"));
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), null , "key"));
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal("0.00") , "key"));
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("0.00") , "key"));
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal("-5.00") , "key"));
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("-5.00") , "key"));
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal("15.000") , "key"));
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("15.000") , "key"));
     }
 
     @Test
@@ -141,7 +139,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal(100L), null));
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal(100L), null));
     }
 
     @Test
@@ -151,7 +149,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
         assertThrows(IllegalArgumentException.class, () ->
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal(100L), null));
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal(100L), null));
     }
 
     @Test
@@ -163,12 +161,12 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse1 = bankAccountService.createAccount(userResponse.id());
 
         TransactionResponse responseTransaction = transactionService.deposit(
-                bankAccountResponse1.id(),
+                bankAccountResponse1.ownerId(), bankAccountResponse1.id(),
                 new BigDecimal("100.00"),
                 "key"
         );
 
-        TransactionResponse resultTransaction = transactionService.getTransactionById(responseTransaction.id());
+        TransactionResponse resultTransaction = transactionService.getTransactionById(bankAccountResponse1.ownerId(), responseTransaction.id());
 
         assertNotNull(resultTransaction.id());
         assertEquals(responseTransaction.amount(), resultTransaction.amount());
@@ -177,76 +175,7 @@ public class TransactionServiceIT extends BaseServiceIT {
     @Test
     void shouldThrowWhenGettingNonExistentTransaction(){
         assertThrows(TransactionNotFoundException.class, () ->
-                transactionService.getTransactionById(1L));
-    }
-
-    @Test
-    void shouldGetAllTransactions(){
-        String name1 = "Davyd";
-        String email1 = "davyd@gmail.com";
-        UserResponse userResponse1 = userService.createUser(name1, email1);
-
-        String name2 = "John";
-        String email2 = "john@gmail.com";
-        UserResponse userResponse2 = userService.createUser(name2, email2);
-
-        BankAccountResponse account1 = bankAccountService.createAccount(userResponse1.id());
-        BankAccountResponse account2 = bankAccountService.createAccount(userResponse2.id());
-
-        TransactionResponse deposit1 = transactionService.deposit(account1.id(), new BigDecimal("250.00"), "key1");
-        TransactionResponse deposit2 = transactionService.deposit(account2.id(), new BigDecimal("300.00"), "key2");
-        TransactionResponse withdraw1 = transactionService.withdraw(account1.id(), new BigDecimal("60.00"), "key3");
-        TransactionResponse withdraw2 = transactionService.withdraw(account2.id(), new BigDecimal("130.00"), "key4");
-
-        Pageable pageable = PageRequest.of(0, 5);
-
-        Page<TransactionResponse> transactions = transactionService.getAllTransactions(pageable);
-
-        assertEquals(4, transactions.getTotalElements());
-        assertEquals(4, transactions.getContent().size());
-
-        Set<Long> expectedIds = Set.of(
-                deposit1.id(),
-                deposit2.id(),
-                withdraw1.id(),
-                withdraw2.id()
-        );
-
-        Set<Long> actualIds = transactions.stream()
-                .map(TransactionResponse::id)
-                .collect(Collectors.toSet());
-
-        assertEquals(expectedIds, actualIds);
-    }
-
-    @Test
-    void shouldGetTransactionsWithPageable(){
-        String name1 = "Davyd";
-        String email1 = "davyd@gmail.com";
-        UserResponse userResponse1 = userService.createUser(name1, email1);
-
-        String name2 = "John";
-        String email2 = "john@gmail.com";
-        UserResponse userResponse2 = userService.createUser(name2, email2);
-
-        BankAccountResponse account1 = bankAccountService.createAccount(userResponse1.id());
-        BankAccountResponse account2 = bankAccountService.createAccount(userResponse2.id());
-
-        transactionService.deposit(account1.id(), new BigDecimal("250.00"), "key1");
-        transactionService.deposit(account2.id(), new BigDecimal("300.00"), "key2");
-        transactionService.withdraw(account1.id(), new BigDecimal("60.00"), "key3");
-        transactionService.withdraw(account2.id(), new BigDecimal("130.00"), "key4");
-
-        Pageable pageable = PageRequest.of(0, 2, Sort.by("id").ascending());
-
-        Page<TransactionResponse> transactions = transactionService.getAllTransactions(pageable);
-
-        assertEquals(4, transactions.getTotalElements());
-        assertEquals(2, transactions.getContent().size());
-
-        assertEquals(2, transactions.getTotalPages());
-        assertEquals(0, transactions.getNumber());
-        assertTrue(transactions.hasNext());
+                transactionService.getTransactionById(1L, 1L));
     }
 
     @Test
@@ -255,10 +184,10 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
-        transactionService.deposit(bankAccountResponse.id(), new BigDecimal("100.00"), "key");
+        transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("100.00"), "key");
 
         assertThrows(IdempotencyKeyConflictException.class, () ->
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("50.00"), "key"));
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("50.00"), "key"));
     }
 
     @Test
@@ -267,10 +196,10 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
-        transactionService.deposit(bankAccountResponse.id(), new BigDecimal("100.00"), "key");
+        transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("100.00"), "key");
 
         assertThrows(IdempotencyKeyConflictException.class, () ->
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal("50.00"), "key"));
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("50.00"), "key"));
     }
 
     @Test
@@ -279,13 +208,13 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
-        transactionService.deposit(bankAccountResponse.id(), new BigDecimal("100.00"), "key");
+        transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("100.00"), "key");
 
         TransactionResponse transactionResponse =
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("60"), "same-key");
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("60"), "same-key");
 
         TransactionResponse sameTransactionResponse =
-                transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("60"), "same-key");
+                transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("60"), "same-key");
 
         assertEquals(transactionResponse.id(), sameTransactionResponse.id());
     }
@@ -297,10 +226,10 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
         TransactionResponse transactionResponse =
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal("60"), "same-key");
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("60"), "same-key");
 
         TransactionResponse sameTransactionResponse =
-                transactionService.deposit(bankAccountResponse.id(), new BigDecimal("60"), "same-key");
+                transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("60"), "same-key");
 
         assertEquals(transactionResponse.id(), sameTransactionResponse.id());
     }
@@ -314,20 +243,20 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-1"
         );
 
         TransactionResponse transaction = transactionService.transfer(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 toAccount.id(),
                 new BigDecimal("150.00"),
                 "transfer-key-1"
         );
 
-        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.id());
-        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.id());
+        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.ownerId(), fromAccount.id());
+        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.ownerId(), toAccount.id());
 
         assertEquals(new BigDecimal("350.00"), updatedFrom.balance());
         assertEquals(new BigDecimal("150.00"), updatedTo.balance());
@@ -346,7 +275,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> transactionService.transfer(
-                        account.id(),
+                        account.ownerId(), account.id(),
                         account.id(),
                         new BigDecimal("100.00"),
                         "transfer-key-2"
@@ -364,7 +293,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 BankAccountNotFoundException.class,
                 () -> transactionService.transfer(
-                        nonExistingAccountId,
+                        user.id(), nonExistingAccountId,
                         toAccount.id(),
                         new BigDecimal("100.00"),
                         "transfer-key-3"
@@ -378,7 +307,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse fromAccount = bankAccountService.createAccount(user.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-4"
         );
@@ -388,7 +317,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 BankAccountNotFoundException.class,
                 () -> transactionService.transfer(
-                        fromAccount.id(),
+                        fromAccount.ownerId(), fromAccount.id(),
                         nonExistingAccountId,
                         new BigDecimal("100.00"),
                         "transfer-key-4"
@@ -405,7 +334,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("50.00"),
                 "deposit-key-5"
         );
@@ -413,7 +342,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 InsufficientFundsException.class,
                 () -> transactionService.transfer(
-                        fromAccount.id(),
+                        fromAccount.ownerId(), fromAccount.id(),
                         toAccount.id(),
                         new BigDecimal("100.00"),
                         "transfer-key-5"
@@ -430,7 +359,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("50.00"),
                 "deposit-key-6"
         );
@@ -438,15 +367,15 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 InsufficientFundsException.class,
                 () -> transactionService.transfer(
-                        fromAccount.id(),
+                        fromAccount.ownerId(), fromAccount.id(),
                         toAccount.id(),
                         new BigDecimal("100.00"),
                         "transfer-key-6"
                 )
         );
 
-        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.id());
-        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.id());
+        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.ownerId(), fromAccount.id());
+        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.ownerId(), toAccount.id());
 
         assertEquals(new BigDecimal("50.00"), updatedFrom.balance());
         assertEquals(new BigDecimal("0.00"), updatedTo.balance());
@@ -461,17 +390,17 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-7"
         );
 
-        bankAccountService.blockAccount(fromAccount.id());
+        bankAccountService.blockAccount(fromAccount.ownerId(), fromAccount.id());
 
         assertThrows(
                 InvalidAccountStatusException.class,
                 () -> transactionService.transfer(
-                        fromAccount.id(),
+                        fromAccount.ownerId(), fromAccount.id(),
                         toAccount.id(),
                         new BigDecimal("100.00"),
                         "transfer-key-7"
@@ -488,17 +417,17 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-8"
         );
 
-        bankAccountService.blockAccount(toAccount.id());
+        bankAccountService.blockAccount(toAccount.ownerId(), toAccount.id());
 
         assertThrows(
                 InvalidAccountStatusException.class,
                 () -> transactionService.transfer(
-                        fromAccount.id(),
+                        fromAccount.ownerId(), fromAccount.id(),
                         toAccount.id(),
                         new BigDecimal("100.00"),
                         "transfer-key-8"
@@ -515,13 +444,13 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("1200.00"),
                 "deposit-key-9"
         );
 
         transactionService.transfer(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 toAccount.id(),
                 new BigDecimal("500.00"),
                 "transfer-key-9a"
@@ -530,7 +459,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 DailyTransferLimitExceededException.class,
                 () -> transactionService.transfer(
-                        fromAccount.id(),
+                        fromAccount.ownerId(), fromAccount.id(),
                         toAccount.id(),
                         new BigDecimal("600.00"),
                         "transfer-key-9b"
@@ -547,20 +476,20 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-10"
         );
 
         TransactionResponse first = transactionService.transfer(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 toAccount.id(),
                 new BigDecimal("100.00"),
                 "transfer-key-10"
         );
 
         TransactionResponse second = transactionService.transfer(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 toAccount.id(),
                 new BigDecimal("100.00"),
                 "transfer-key-10"
@@ -568,8 +497,8 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         assertEquals(first.id(), second.id());
 
-        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.id());
-        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.id());
+        BankAccountResponse updatedFrom = bankAccountService.getAccount(fromAccount.ownerId(), fromAccount.id());
+        BankAccountResponse updatedTo = bankAccountService.getAccount(toAccount.ownerId(), toAccount.id());
 
         assertEquals(new BigDecimal("400.00"), updatedFrom.balance());
         assertEquals(new BigDecimal("100.00"), updatedTo.balance());
@@ -584,13 +513,13 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse toAccount = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-11"
         );
 
         transactionService.transfer(
-                fromAccount.id(),
+                fromAccount.ownerId(), fromAccount.id(),
                 toAccount.id(),
                 new BigDecimal("100.00"),
                 "same-key-11"
@@ -599,7 +528,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 IdempotencyKeyConflictException.class,
                 () -> transactionService.transfer(
-                        fromAccount.id(),
+                        fromAccount.ownerId(), fromAccount.id(),
                         toAccount.id(),
                         new BigDecimal("200.00"),
                         "same-key-11"
@@ -612,7 +541,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> transactionService.transfer(
-                        1L,
+                        1L, 1L,
                         2L,
                         new BigDecimal("-100.00"),
                         "valid-key"
@@ -625,7 +554,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> transactionService.transfer(
-                        1L,
+                        1L, 1L,
                         2L,
                         new BigDecimal("100.00"),
                         "   "
@@ -652,13 +581,13 @@ public class TransactionServiceIT extends BaseServiceIT {
                 bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("1200.00"),
                 "deposit-key"
         );
 
         transactionService.withdraw(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("600.00"),
                 "withdraw-key"
         );
@@ -666,7 +595,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 DailyTransferLimitExceededException.class,
                 () -> transactionService.transfer(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         account2.id(),
                         new BigDecimal("450.00"),
                         "transfer-key"
@@ -676,7 +605,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 DailyTransferLimitExceededException.class,
                 () -> transactionService.withdraw(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         new BigDecimal("450.00"),
                         "withdrawal-key"
                 )
@@ -702,14 +631,14 @@ public class TransactionServiceIT extends BaseServiceIT {
                 bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("800"),
                 "deposit-key"
         );
 
         assertDoesNotThrow(() ->
                 transactionService.transfer(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         account2.id(),
                         new BigDecimal("700.00"),
                         "transfer-key"
@@ -726,27 +655,27 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("1000.00"),
                 "deposit-key"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("100.00"),
                 "transfer-key-1"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("200.00"),
                 "transfer-key-2"
         );
 
         transactionService.transfer(
-                account2.id(),
+                account2.ownerId(), account2.id(),
                 account1.id(),
                 new BigDecimal("50.00"),
                 "transfer-key-3"
@@ -756,7 +685,7 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         TransactionDirection.FROM,
                         TransactionSortingMethod.CREATED_AT_DESC,
                         pageable
@@ -782,26 +711,26 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-1"
         );
 
         transactionService.deposit(
-                account2.id(),
+                account2.ownerId(), account2.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-2"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("100.00"),
                 "transfer-key-1"
         );
 
         transactionService.transfer(
-                account2.id(),
+                account2.ownerId(), account2.id(),
                 account1.id(),
                 new BigDecimal("200.00"),
                 "transfer-key-2"
@@ -811,7 +740,7 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         TransactionDirection.TO,
                         TransactionSortingMethod.CREATED_AT_DESC,
                         pageable
@@ -837,26 +766,26 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-1"
         );
 
         transactionService.deposit(
-                account2.id(),
+                account2.ownerId(), account2.id(),
                 new BigDecimal("500.00"),
                 "deposit-key-2"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("100.00"),
                 "transfer-key-1"
         );
 
         transactionService.transfer(
-                account2.id(),
+                account2.ownerId(), account2.id(),
                 account1.id(),
                 new BigDecimal("200.00"),
                 "transfer-key-2"
@@ -866,7 +795,7 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         null,
                         TransactionSortingMethod.CREATED_AT_DESC,
                         pageable
@@ -890,23 +819,23 @@ public class TransactionServiceIT extends BaseServiceIT {
         BankAccountResponse account2 = bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("1000.00"),
                 "deposit-key"
         );
 
         transactionService.transfer(
-                account1.id(), account2.id(),
+                account1.ownerId(), account1.id(), account2.id(),
                 new BigDecimal("100.00"), "key-1"
         );
 
         transactionService.transfer(
-                account1.id(), account2.id(),
+                account1.ownerId(), account1.id(), account2.id(),
                 new BigDecimal("100.00"), "key-2"
         );
 
         transactionService.transfer(
-                account1.id(), account2.id(),
+                account1.ownerId(), account1.id(), account2.id(),
                 new BigDecimal("100.00"), "key-3"
         );
 
@@ -914,7 +843,7 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         TransactionDirection.FROM,
                         TransactionSortingMethod.CREATED_AT_DESC,
                         pageable
@@ -933,7 +862,7 @@ public class TransactionServiceIT extends BaseServiceIT {
         assertThrows(
                 BankAccountNotFoundException.class,
                 () -> transactionService.getTransactionsByAccount(
-                        999999L,
+                        1L, 999999L,
                         TransactionDirection.FROM,
                         TransactionSortingMethod.CREATED_AT_DESC,
                         pageable
@@ -957,27 +886,27 @@ public class TransactionServiceIT extends BaseServiceIT {
                 bankAccountService.createAccount(user2.id());
 
         transactionService.deposit(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 new BigDecimal("1000.00"),
                 "deposit-key"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("300.00"),
                 "key-1"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("100.00"),
                 "key-2"
         );
 
         transactionService.transfer(
-                account1.id(),
+                account1.ownerId(), account1.id(),
                 account2.id(),
                 new BigDecimal("200.00"),
                 "key-3"
@@ -987,7 +916,7 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         Page<TransactionResponse> result =
                 transactionService.getTransactionsByAccount(
-                        account1.id(),
+                        account1.ownerId(), account1.id(),
                         TransactionDirection.FROM,
                         sortingMethod,
                         pageable
@@ -1062,12 +991,12 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         BankAccountResponse bankAccountResponse = bankAccountService.createAccount(userResponse.id());
 
-        transactionService.deposit(bankAccountResponse.id(), new BigDecimal("2000"), "key1");
+        transactionService.deposit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("2000"), "key1");
 
-        transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("900.00"), "key2");
+        transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("900.00"), "key2");
 
-        bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.id(), new BigDecimal("1600.00"));
+        bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("1600.00"));
 
-        transactionService.withdraw(bankAccountResponse.id(), new BigDecimal("400"), "key3");
+        transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("400"), "key3");
     }
 }

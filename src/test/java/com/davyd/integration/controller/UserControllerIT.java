@@ -1,14 +1,14 @@
 package com.davyd.integration.controller;
 
 import com.davyd.user.dto.request.ChangeUserNameRequest;
-import com.davyd.user.dto.request.CreateUserRequest;
 import com.davyd.integration.TestcontainersConfiguration;
 import com.davyd.user.User;
 import com.davyd.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.test.context.support.WithMockUser;
+import com.davyd.security.principal.FlowBankPrincipal;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WithMockUser(username = "controller-test@example.com")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
@@ -41,132 +40,6 @@ class UserControllerIT {
         userRepository.deleteAll();
     }
 
-    // =========================================================
-    // GET /users
-    // =========================================================
-
-    @Test
-    void shouldGetAllUsers() throws Exception {
-        userRepository.save(
-                new User("Davyd", "davyd@gmail.com")
-        );
-
-        userRepository.save(
-                new User("Max", "max@gmail.com")
-        );
-
-        mockMvc.perform(get("/users"))
-                .andExpect(status().isOk())
-                .andExpect(content()
-                        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.size").value(20));
-    }
-
-    @Test
-    void shouldReturnEmptyPageWhenNoUsersExist() throws Exception {
-        mockMvc.perform(get("/users"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content").isEmpty())
-                .andExpect(jsonPath("$.totalElements").value(0));
-    }
-
-    @Test
-    void shouldGetUsersWithCustomPagination() throws Exception {
-        userRepository.save(new User("User1", "user1@gmail.com"));
-        userRepository.save(new User("User2", "user2@gmail.com"));
-        userRepository.save(new User("User3", "user3@gmail.com"));
-
-        mockMvc.perform(get("/users")
-                        .param("page", "0")
-                        .param("size", "2"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.number").value(0))
-                .andExpect(jsonPath("$.size").value(2))
-                .andExpect(jsonPath("$.totalElements").value(3))
-                .andExpect(jsonPath("$.totalPages").value(2));
-    }
-
-    // =========================================================
-    // GET /users/{id}
-    // =========================================================
-
-    @Test
-    void shouldGetUserById() throws Exception {
-        User user = userRepository.save(
-                new User("Davyd", "davyd@gmail.com")
-        );
-
-        mockMvc.perform(get("/users/{id}", user.getId()))
-                .andExpect(status().isOk())
-                .andExpect(content()
-                        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(user.getId()))
-                .andExpect(jsonPath("$.name").value("Davyd"))
-                .andExpect(jsonPath("$.email").value("davyd@gmail.com"));
-    }
-
-    @Test
-    void shouldReturn404WhenUserByIdDoesNotExist() throws Exception {
-        mockMvc.perform(get("/users/{id}", 999999L))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    void shouldReturn400WhenUserIdIsNotPositive() throws Exception {
-        mockMvc.perform(get("/users/{id}", 0))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
-    }
-
-    // =========================================================
-    // GET /users/by-email
-    // =========================================================
-
-    @Test
-    void shouldGetUserByEmail() throws Exception {
-        User user = userRepository.save(
-                new User("Davyd", "davyd@gmail.com")
-        );
-
-        mockMvc.perform(get("/users/by-email")
-                        .param("email", "davyd@gmail.com"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(user.getId()))
-                .andExpect(jsonPath("$.name").value("Davyd"))
-                .andExpect(jsonPath("$.email").value("davyd@gmail.com"));
-    }
-
-    @Test
-    void shouldReturn404WhenUserByEmailDoesNotExist() throws Exception {
-        mockMvc.perform(get("/users/by-email")
-                        .param("email", "unknown@gmail.com"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    void shouldReturn400WhenEmailParameterIsInvalid() throws Exception {
-        mockMvc.perform(get("/users/by-email")
-                        .param("email", "invalid-email"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
-    }
-
-    @Test
-    void shouldReturn400WhenEmailParameterIsMissing() throws Exception {
-        mockMvc.perform(get("/users/by-email"))
-                .andExpect(status().isBadRequest());
-    }
-
-    // =========================================================
-    // PATCH /users/{id}/name
-    // =========================================================
-
     @Test
     void shouldChangeUserName() throws Exception {
         User user = userRepository.save(
@@ -176,7 +49,8 @@ class UserControllerIT {
         ChangeUserNameRequest request =
                 new ChangeUserNameRequest("Max");
 
-        mockMvc.perform(patch("/users/{id}/name", user.getId())
+        mockMvc.perform(patch("/users/me/name")
+                        .with(user(new FlowBankPrincipal(user.getId(), "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isOk())
@@ -197,25 +71,12 @@ class UserControllerIT {
         ChangeUserNameRequest request =
                 new ChangeUserNameRequest("Max");
 
-        mockMvc.perform(patch("/users/{id}/name", 999999L)
+        mockMvc.perform(patch("/users/me/name")
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    void shouldReturn400WhenChangingNameWithInvalidId()
-            throws Exception {
-
-        ChangeUserNameRequest request =
-                new ChangeUserNameRequest("Max");
-
-        mockMvc.perform(patch("/users/{id}/name", 0)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)).with(csrf()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
     }
 
     @Test
@@ -229,7 +90,8 @@ class UserControllerIT {
         ChangeUserNameRequest request =
                 new ChangeUserNameRequest("");
 
-        mockMvc.perform(patch("/users/{id}/name", user.getId())
+        mockMvc.perform(patch("/users/me/name")
+                        .with(user(new FlowBankPrincipal(user.getId(), "controller-test@example.com", "unused")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)).with(csrf()))
                 .andExpect(status().isBadRequest())
@@ -244,10 +106,6 @@ class UserControllerIT {
         assertEquals("Davyd", unchangedUser.getName());
     }
 
-    // =========================================================
-    // DELETE /users/{id}
-    // =========================================================
-
     @Test
     void shouldDeleteUser() throws Exception {
         User user = userRepository.save(
@@ -256,7 +114,8 @@ class UserControllerIT {
 
         long userId = user.getId();
 
-        mockMvc.perform(delete("/users/{id}", userId).with(csrf()))
+        mockMvc.perform(delete("/users/me")
+                        .with(user(new FlowBankPrincipal(user.getId(), "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
@@ -265,15 +124,9 @@ class UserControllerIT {
 
     @Test
     void shouldReturn404WhenDeletingNonExistingUser() throws Exception {
-        mockMvc.perform(delete("/users/{id}", 999999L).with(csrf()))
+        mockMvc.perform(delete("/users/me")
+                        .with(user(new FlowBankPrincipal(999999L, "controller-test@example.com", "unused"))).with(csrf()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    void shouldReturn400WhenDeletingUserWithInvalidId() throws Exception {
-        mockMvc.perform(delete("/users/{id}", 0).with(csrf()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
     }
 }

@@ -311,8 +311,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(200));
@@ -358,8 +358,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(200));
@@ -388,8 +388,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountTo.deposit(BigDecimal.valueOf(350));
@@ -435,8 +435,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(50));
@@ -460,15 +460,17 @@ public class TransactionServiceTest {
 
         accountTo.deposit(BigDecimal.valueOf(100));
 
-        when(bankAccountRepository.findById(1L))
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(BankAccountNotFoundException.class, () ->
+        BankAccountNotFoundException exception = assertThrows(BankAccountNotFoundException.class, () ->
                 transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(50), "key"));
 
-        verify(bankAccountRepository).findById(1L);
-        verify(bankAccountRepository, never()).findByIdForUpdate(2L);
-        verify(transactionRepository, never()).save(any());
+        assertEquals("Bank account with ID 1 not found", exception.getMessage());
+
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
+        verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
+        verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
     }
 
     @Test
@@ -478,8 +480,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
 
         accountFrom.deposit(BigDecimal.valueOf(100));
 
@@ -488,12 +490,14 @@ public class TransactionServiceTest {
         when(bankAccountRepository.findByIdForUpdate(2L))
                 .thenReturn(Optional.empty());
 
-        assertThrows(BankAccountNotFoundException.class, () ->
+        BankAccountNotFoundException exception = assertThrows(BankAccountNotFoundException.class, () ->
                 transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(50), "key"));
+
+        assertEquals("Bank account with ID 2 not found", exception.getMessage());
 
         verify(bankAccountRepository).findByIdForUpdate(1L);
         verify(bankAccountRepository).findByIdForUpdate(2L);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository, never()).saveAndFlush(any(Transaction.class));
     }
 
     @Test
@@ -541,8 +545,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         accountFrom.deposit(BigDecimal.valueOf(900));
@@ -627,8 +631,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         ReflectionTestUtils.setField(accountFrom, "id", 1L);
@@ -650,7 +654,7 @@ public class TransactionServiceTest {
                 transactionService.transfer(1L, 1L, 2L, transferAmount, "key"));
 
         verifyNoInteractions(transferLimitService);
-        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
         verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
@@ -669,8 +673,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         BankAccount anotherAccountFrom = new BankAccount(anotherUserFrom);
@@ -695,7 +699,7 @@ public class TransactionServiceTest {
                 transactionService.transfer(1L, 1L, 2L, transferAmount, "key"));
 
         verifyNoInteractions(transferLimitService);
-        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
         verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
@@ -714,8 +718,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         BankAccount anotherAccountTo = new BankAccount(anotherUserTo);
@@ -740,7 +744,7 @@ public class TransactionServiceTest {
                 transactionService.transfer(1L, 1L, 2L, transferAmount, "key"));
 
         verifyNoInteractions(transferLimitService);
-        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
         verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
@@ -756,8 +760,8 @@ public class TransactionServiceTest {
 
         BankAccount accountFrom = new BankAccount(userFrom);
 
-        when(bankAccountRepository.findById(1L))
-                .thenReturn(Optional.of(accountFrom));
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(userFrom.getId()));
         BankAccount accountTo = new BankAccount(userTo);
 
         ReflectionTestUtils.setField(accountFrom, "id", 1L);
@@ -786,7 +790,7 @@ public class TransactionServiceTest {
         assertEquals(BigDecimal.valueOf(150), transactionResponse.amount());
 
         verifyNoInteractions(transferLimitService);
-        verify(bankAccountRepository).findById(1L);
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
         verify(bankAccountRepository, never()).findByIdForUpdate(anyLong());
 
         verify(transactionRepository, never())
