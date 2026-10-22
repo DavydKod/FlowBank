@@ -312,4 +312,104 @@ class BankAccountServiceTest {
         verify(bankAccountRepository).findById(1L);
     }
 
+
+    @Test
+    void shouldRejectGetAccountWhenCurrentUserIsNotOwner() {
+        User owner = new User("Owner", "owner@example.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
+        BankAccount account = mock(BankAccount.class);
+        when(account.getOwner()).thenReturn(owner);
+        when(bankAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> bankAccountService.getAccount(2L, 1L)
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(account).getOwner();
+        verifyNoMoreInteractions(account);
+        verify(bankAccountRepository).findById(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+    }
+
+    @Test
+    void shouldRejectBlockAccountWhenCurrentUserIsNotOwner() {
+        User owner = new User("Owner", "owner@example.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
+        BankAccount account = mock(BankAccount.class);
+        when(account.getOwner()).thenReturn(owner);
+        when(bankAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> bankAccountService.blockAccount(2L, 1L)
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(account).getOwner();
+        verifyNoMoreInteractions(account);
+        verify(bankAccountRepository).findById(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+    }
+
+    @Test
+    void shouldRejectUnblockAccountWhenCurrentUserIsNotOwner() {
+        User owner = new User("Owner", "owner@example.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
+        BankAccount account = mock(BankAccount.class);
+        when(account.getOwner()).thenReturn(owner);
+        when(bankAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> bankAccountService.unblockAccount(2L, 1L)
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(account).getOwner();
+        verifyNoMoreInteractions(account);
+        verify(bankAccountRepository).findById(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+    }
+
+    @Test
+    void shouldRejectCloseAccountWhenCurrentUserIsNotOwner() {
+        User owner = new User("Owner", "owner@example.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
+        BankAccount account = mock(BankAccount.class);
+        when(account.getOwner()).thenReturn(owner);
+        when(bankAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> bankAccountService.closeAccount(2L, 1L)
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(account).getOwner();
+        verifyNoMoreInteractions(account);
+        verify(bankAccountRepository).findById(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+    }
+
+    @Test
+    void shouldRejectChangeDailyOutgoingLimitWhenCurrentUserIsNotOwner() {
+        User owner = new User("Owner", "owner@example.com");
+        ReflectionTestUtils.setField(owner, "id", 1L);
+        BankAccount account = mock(BankAccount.class);
+        when(account.getOwner()).thenReturn(owner);
+        when(bankAccountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> bankAccountService.changeDailyOutgoingLimit(2L, 1L, java.math.BigDecimal.TEN)
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(account).getOwner();
+        verifyNoMoreInteractions(account);
+        verify(bankAccountRepository).findById(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+    }
 }

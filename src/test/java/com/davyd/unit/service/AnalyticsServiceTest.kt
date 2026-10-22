@@ -201,4 +201,22 @@ class AnalyticsServiceTest {
             analyticsService.getAccountAnalytics(1L, accountId)
         }
     }
+
+    @Test
+    fun `should reject analytics when current user is not account owner`() {
+        val owner = User("Owner", "owner@example.com")
+        ReflectionTestUtils.setField(owner, "id", 1L)
+        val account = BankAccount(owner)
+        whenever(bankAccountRepository.findById(1L))
+            .thenReturn(Optional.of(account))
+
+        val exception = assertThrows<BankAccountNotFoundException> {
+            analyticsService.getAccountAnalytics(2L, 1L)
+        }
+
+        assertEquals(BankAccountNotFoundException(1L).message, exception.message)
+        org.mockito.Mockito.verify(bankAccountRepository).findById(1L)
+        org.mockito.Mockito.verifyNoMoreInteractions(bankAccountRepository)
+        org.mockito.Mockito.verifyNoInteractions(transactionRepository)
+    }
 }
