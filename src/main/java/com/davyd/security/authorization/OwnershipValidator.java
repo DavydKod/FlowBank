@@ -1,7 +1,6 @@
 package com.davyd.security.authorization;
 
 import com.davyd.common.exception.NotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 import java.util.function.Supplier;
