@@ -998,4 +998,21 @@ public class TransactionServiceIT extends BaseServiceIT {
 
         transactionService.withdraw(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("400"), "key3");
     }
+
+    @Test
+    void shouldRejectGetTransactionWhenCurrentUserIsNotOwner(){
+        UserResponse user1 = userService.createUser("Davyd", "davyd@gmail.com");
+        UserResponse user2 = userService.createUser("Max", "max@gmail.com");
+
+        BankAccountResponse account1 = bankAccountService.createAccount(user1.id());
+
+        TransactionResponse transactionResponse = transactionService.deposit(
+                account1.ownerId(), account1.id(),
+                new BigDecimal("1000.00"),
+                "deposit-key"
+        );
+
+        assertThrows(TransactionNotFoundException.class,
+                () -> transactionService.getTransactionById(user2.id(), transactionResponse.id()));
+    }
 }
