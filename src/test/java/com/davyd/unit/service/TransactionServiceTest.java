@@ -112,8 +112,8 @@ public class TransactionServiceTest {
 
         );
 
-        when(bankAccountRepository.findById(accountId))
-                .thenReturn(Optional.of(transaction.getFromAccount()));
+        when(bankAccountRepository.findOwnerIdByAccountId(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount().getOwner().getId()));
 
         when(transactionRepository.findByFromAccount_Id(accountId, pageable))
                 .thenReturn(transactions);
@@ -131,7 +131,7 @@ public class TransactionServiceTest {
 
         assertEquals(expected, result);
 
-        verify(bankAccountRepository).findById(accountId);
+        verify(bankAccountRepository).findOwnerIdByAccountId(accountId);
 
         verify(transactionRepository)
                 .findByFromAccount_Id(accountId, pageable);
@@ -157,8 +157,8 @@ public class TransactionServiceTest {
 
         );
 
-        when(bankAccountRepository.findById(accountId))
-                .thenReturn(Optional.of(transaction.getFromAccount()));
+        when(bankAccountRepository.findOwnerIdByAccountId(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount().getOwner().getId()));
 
         when(transactionRepository.findByToAccount_Id(accountId, pageable))
                 .thenReturn(transactions);
@@ -176,7 +176,7 @@ public class TransactionServiceTest {
 
         assertEquals(expected, result);
 
-        verify(bankAccountRepository).findById(accountId);
+        verify(bankAccountRepository).findOwnerIdByAccountId(accountId);
 
         verify(transactionRepository)
                 .findByToAccount_Id(accountId, pageable);
@@ -202,8 +202,8 @@ public class TransactionServiceTest {
 
         );
 
-        when(bankAccountRepository.findById(accountId))
-                .thenReturn(Optional.of(transaction.getFromAccount()));
+        when(bankAccountRepository.findOwnerIdByAccountId(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount().getOwner().getId()));
 
         when(transactionRepository.findByFromAccount_IdOrToAccount_Id(
                 accountId,
@@ -224,7 +224,7 @@ public class TransactionServiceTest {
 
         assertEquals(expected, result);
 
-        verify(bankAccountRepository).findById(accountId);
+        verify(bankAccountRepository).findOwnerIdByAccountId(accountId);
 
         verify(transactionRepository)
                 .findByFromAccount_IdOrToAccount_Id(
@@ -240,7 +240,7 @@ public class TransactionServiceTest {
 
         Pageable pageable = PageRequest.of(0, 20);
 
-        when(bankAccountRepository.findById(accountId))
+        when(bankAccountRepository.findOwnerIdByAccountId(accountId))
                 .thenReturn(Optional.empty());
 
         assertThrows(
@@ -280,8 +280,8 @@ public class TransactionServiceTest {
         Pageable inputPageable = PageRequest.of(0, 20);
         Pageable expectedPageable = PageRequest.of(0, 20, expectedSort);
 
-        when(bankAccountRepository.findById(accountId))
-                .thenReturn(Optional.of(transaction.getFromAccount()));
+        when(bankAccountRepository.findOwnerIdByAccountId(accountId))
+                .thenReturn(Optional.of(transaction.getFromAccount().getOwner().getId()));
 
         when(transactionRepository.findByFromAccount_Id(
                 accountId,

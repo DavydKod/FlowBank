@@ -23,11 +23,11 @@ public class UserService {
         this.bankAccountRepository = bankAccountRepository;
     }
 
-    public UserResponse getUser(long id) {
+    public UserResponse getUser(long currentUserId) {
 
-        User user = userRepository.findById(id)
+        User user = userRepository.findById(currentUserId)
                 .orElseThrow(
-                        () -> new UserNotFoundException(id)
+                        () -> new UserNotFoundException(currentUserId)
                 );
 
         return UserMapper.toResponse(user);
