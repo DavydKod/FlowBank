@@ -60,7 +60,7 @@ public class TransactionService {
                 && transaction.getToAccount().getOwner().getId() == currentUserId;
 
         if (!ownsFromAccount && !ownsToAccount) {
-            throw new AccessDeniedException("Access denied");
+            throw new TransactionNotFoundException(id);
         }
 
         return TransactionMapper.toResponse(transaction);
@@ -68,10 +68,11 @@ public class TransactionService {
 
     public Page<TransactionResponse> getTransactionsByAccount(long currentUserId, long accountId, TransactionDirection direction,
                                                               TransactionSortingMethod sortingMethod, Pageable pageable) {
-        long accountOwnerId = bankAccountRepository.findById(accountId).orElseThrow(
-                () -> new BankAccountNotFoundException(accountId)).getOwner().getId();
+        long accountOwnerId = bankAccountRepository.findOwnerIdByAccountId(accountId).orElseThrow(
+                () -> new BankAccountNotFoundException(accountId));
 
-        ownershipValidator.requireOwner(currentUserId, accountOwnerId);
+        ownershipValidator.requireOwner(currentUserId, accountOwnerId,
+                () -> new BankAccountNotFoundException(accountId));
 
         Sort sort = getSortMethod(sortingMethod);
 
@@ -114,7 +115,8 @@ public class TransactionService {
         long fromAccountOwnerId = bankAccountRepository.findOwnerIdByAccountId(fromAccountId)
                 .orElseThrow(() -> new BankAccountNotFoundException(fromAccountId));
 
-        ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId);
+        ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId,
+                () -> new BankAccountNotFoundException(fromAccountId));
 
         // First check of idempotency key, that is optional
         // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
@@ -185,7 +187,8 @@ public class TransactionService {
         long fromAccountOwnerId = bankAccountRepository.findOwnerIdByAccountId(fromAccountId).orElseThrow(
                 () -> new BankAccountNotFoundException(fromAccountId));
 
-        ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId);
+        ownershipValidator.requireOwner(currentUserId, fromAccountOwnerId,
+                () -> new BankAccountNotFoundException(fromAccountId));
 
         // First check of idempotency key, that is optional
         // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the
@@ -239,7 +242,8 @@ public class TransactionService {
         long toAccountOwnerId = bankAccountRepository.findOwnerIdByAccountId(toAccountId).orElseThrow(
                 () -> new BankAccountNotFoundException(toAccountId));
 
-        ownershipValidator.requireOwner(currentUserId, toAccountOwnerId);
+        ownershipValidator.requireOwner(currentUserId, toAccountOwnerId,
+                () -> new BankAccountNotFoundException(toAccountId));
 
         // First check of idempotency key, that is optional
         // Exists only for optimization purpose - to prevent from expensive pessimistic locking of the

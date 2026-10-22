@@ -26,7 +26,7 @@ class AnalyticsService (
             .orElseThrow{BankAccountNotFoundException(accountId)}
             .owner.id
 
-        ownershipValidator.requireOwner(currentUserId, ownerId)
+        ownershipValidator.requireOwner(currentUserId, ownerId) {BankAccountNotFoundException(accountId)}
 
         val totalSent: BigDecimal = transactionRepository.getTotalSent(accountId)
 

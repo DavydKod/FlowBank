@@ -52,7 +52,8 @@ public class BankAccountService {
         BankAccount account = bankAccountRepository.findById(id)
                 .orElseThrow(() -> new BankAccountNotFoundException(id));
 
-        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId(),
+                () -> new BankAccountNotFoundException(id));
 
         return BankAccountMapper.toResponse(account);
     }
@@ -75,7 +76,8 @@ public class BankAccountService {
     public BankAccountResponse blockAccount(long currentUserId, long accountId) {
         BankAccount account = getAccountEntity(accountId);
 
-        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId(),
+                () -> new BankAccountNotFoundException(accountId));
 
         account.blockAccount();
         return BankAccountMapper.toResponse(account);
@@ -85,7 +87,8 @@ public class BankAccountService {
     public BankAccountResponse unblockAccount(long currentUserId, long accountId) {
         BankAccount account = getAccountEntity(accountId);
 
-        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId(),
+                () -> new BankAccountNotFoundException(accountId));
 
         account.unblockAccount();
         return BankAccountMapper.toResponse(account);
@@ -95,7 +98,8 @@ public class BankAccountService {
     public BankAccountResponse closeAccount(long currentUserId, long accountId) {
         BankAccount account = getAccountEntity(accountId);
 
-        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId());
+        ownershipValidator.requireOwner(currentUserId, account.getOwner().getId(),
+                () -> new BankAccountNotFoundException(accountId));
 
         account.closeAccount();
         return BankAccountMapper.toResponse(account);
@@ -107,7 +111,8 @@ public class BankAccountService {
 
         BankAccount bankAccount = getAccountEntity(accountId);
 
-        ownershipValidator.requireOwner(currentUserId, bankAccount.getOwner().getId());
+        ownershipValidator.requireOwner(currentUserId, bankAccount.getOwner().getId(),
+                () -> new BankAccountNotFoundException(accountId));
 
         bankAccount.changeDailyOutgoingLimit(newLimit);
         return BankAccountMapper.toResponse(bankAccount);
