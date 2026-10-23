@@ -1,6 +1,7 @@
 package com.davyd.integration.service;
 
 import com.davyd.bankaccount.dto.response.BankAccountResponse;
+import com.davyd.user.User;
 import com.davyd.user.dto.response.UserResponse;
 import com.davyd.bankaccount.exception.BankAccountNotFoundException;
 import com.davyd.bankaccount.exception.InvalidAccountStatusException;
@@ -16,11 +17,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class BankAccountServiceIT extends BaseServiceIT {
     @Autowired
@@ -235,5 +241,16 @@ public class BankAccountServiceIT extends BaseServiceIT {
         assertThrows(InvalidAccountStatusException.class, () ->
                 bankAccountService.changeDailyOutgoingLimit(bankAccountResponse.ownerId(), bankAccountResponse.id(), new BigDecimal("1340.00")));
 
+    }
+
+    @Test
+    void shouldRejectGetAccountWhenCurrentUserIsNotOwner() {
+        UserResponse user1 = userService.createUser("NotOwner", "notown@gmail.com");
+        UserResponse user2 = userService.createUser("Owner", "own@gmail.com");
+
+        BankAccountResponse bankAccountResponse = bankAccountService.createAccount(user2.id());
+
+        assertThrows(BankAccountNotFoundException.class,
+                () -> bankAccountService.getAccount(user1.id(), bankAccountResponse.id()));
     }
 }

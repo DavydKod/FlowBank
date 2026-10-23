@@ -818,4 +818,84 @@ public class TransactionServiceTest {
     void shouldThrowWhenExceedingBigDecimalLimitsInTransfer(){
         assertThrows(IllegalArgumentException.class, () -> transactionService.transfer(1L, 1L, 2L, BigDecimal.valueOf(100000000000000000L), "key"));
     }
+
+    @Test
+    void shouldRejectGetTransactionsByAccountWhenCurrentUserIsNotOwner() {
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(1L));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> transactionService.getTransactionsByAccount(2L, 1L, null, null, PageRequest.of(0, 20))
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository, transferLimitService);
+    }
+
+    @Test
+    void shouldRejectTransferWhenCurrentUserIsNotOwner() {
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(1L));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> transactionService.transfer(2L, 1L, 3L, BigDecimal.TEN, "key")
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository, transferLimitService);
+    }
+
+    @Test
+    void shouldRejectWithdrawWhenCurrentUserIsNotOwner() {
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(1L));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> transactionService.withdraw(2L, 1L, BigDecimal.TEN, "key")
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository, transferLimitService);
+    }
+
+    @Test
+    void shouldRejectDepositWhenCurrentUserIsNotOwner() {
+        when(bankAccountRepository.findOwnerIdByAccountId(1L))
+                .thenReturn(Optional.of(1L));
+
+        BankAccountNotFoundException exception = assertThrows(
+                BankAccountNotFoundException.class,
+                () -> transactionService.deposit(2L, 1L, BigDecimal.TEN, "key")
+        );
+
+        assertEquals(new BankAccountNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(bankAccountRepository).findOwnerIdByAccountId(1L);
+        verifyNoMoreInteractions(bankAccountRepository);
+        verifyNoInteractions(transactionRepository, transferLimitService);
+    }
+
+    @Test
+    void shouldRejectGetTransactionByIdWhenCurrentUserOwnsNeitherAccount() {
+        Transaction transaction = createTransaction();
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+
+        TransactionNotFoundException exception = assertThrows(
+                TransactionNotFoundException.class,
+                () -> transactionService.getTransactionById(999L, 1L)
+        );
+
+        assertEquals(new TransactionNotFoundException(1L).getMessage(), exception.getMessage());
+        verify(transactionRepository).findById(1L);
+        verifyNoMoreInteractions(transactionRepository);
+        verifyNoInteractions(bankAccountRepository, transferLimitService);
+    }
 }

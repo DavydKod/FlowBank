@@ -58,15 +58,81 @@ class BankAccountControllerIT {
     }
 
     @Test
+    void shouldReturn404WhenGettingAnotherUsersAccount() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+
+        mockMvc.perform(get("/accounts/{id}", account.id())
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused"))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenBlockingAnotherUsersAccount() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+
+        mockMvc.perform(patch("/accounts/{id}/block", account.id())
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused")))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenUnblockingAnotherUsersAccount() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+        bankAccountService.blockAccount(owner.id(), account.id());
+
+        mockMvc.perform(patch("/accounts/{id}/unblock", account.id())
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused")))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenClosingAnotherUsersAccount() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+
+        mockMvc.perform(patch("/accounts/{id}/close", account.id())
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused")))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenChangingAnotherUsersAccountLimit() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+
+        mockMvc.perform(patch("/accounts/{id}/dailyOutgoingLimit", account.id())
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused")))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ChangeBankAccountDailyOutgoingLimitRequest(new BigDecimal("500.00")))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
     void shouldGetCurrentUserAccounts() throws Exception {
         UserResponse user =
                 userService.createUser("Davyd", "davyd@gmail.com");
 
-        BankAccountResponse account1 =
-                bankAccountService.createAccount(user.id());
+        bankAccountService.createAccount(user.id());
 
-        BankAccountResponse account2 =
-                bankAccountService.createAccount(user.id());
+        bankAccountService.createAccount(user.id());
 
         mockMvc.perform(get("/accounts/me")
                         .with(user(new FlowBankPrincipal(user.id(), "controller-test@example.com", "unused"))))

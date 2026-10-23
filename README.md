@@ -1,212 +1,257 @@
 # FlowBank
 
-**FlowBank** is a RESTful banking backend built with Java 25, Kotlin, Spring Boot, and PostgreSQL.
+**Version 2.0.0**
 
-The project implements core banking operations with an emphasis on **transactional integrity, concurrency control, database consistency, automated testing, and maintainable backend architecture**.
+FlowBank is a banking REST API built with Java, Kotlin, Spring Boot, and PostgreSQL. It implements session-based authentication, account management, deposits, withdrawals, transfers, transaction history, and account analytics.
 
-FlowBank is designed to demonstrate practical backend engineering concepts, including race condition handling, database locking strategies, idempotent operations, integration testing against real PostgreSQL instances, and automated CI pipelines.
+The project focuses on transactional integrity, ownership-based authorization, concurrency control, idempotency, and automated testing against PostgreSQL.
 
-## Tech Stack
+## What's new in 2.0.0
 
-**Backend**
-- Java 25
-- Kotlin
-- Spring Boot 3
-- Spring Data JPA / Hibernate
-- PostgreSQL
-- Maven
+- Registration and login using email and password.
+- Argon2 password hashing, with credentials stored separately from user profiles.
+- Session authentication, automatic login after registration, and session ID rotation on authentication.
+- CSRF protection and a public endpoint for retrieving tokens.
+- Logout with session invalidation and deletion of the session cookie.
+- Current-user endpoints and ownership checks for accounts, transactions, and analytics.
+- Controller integration tests for authentication, sessions, CSRF, and access to other users' resources.
+- JaCoCo configuration that collects Surefire coverage alongside integration-test coverage.
 
-**Database & Infrastructure**
-- Flyway
-- Docker / Docker Compose
-- Testcontainers
+## Tech stack
 
-**Testing & Quality**
-- JUnit 5
-- Mockito
-- Spring Boot Test
-- Maven Surefire & Failsafe
-- JaCoCo
-- GitHub Actions
+| Area | Technologies |
+| --- | --- |
+| Languages | Java 25, Kotlin 2.3 |
+| Application | Spring Boot 3.5, Spring Web, Bean Validation |
+| Security | Spring Security, HTTP sessions, Argon2, CSRF |
+| Persistence | Spring Data JPA, Hibernate, PostgreSQL, Flyway |
+| API documentation | springdoc-openapi / Swagger UI |
+| Testing | JUnit 5, Mockito, MockMvc, Spring Boot Test, Testcontainers |
+| Build and CI | Maven, Surefire, Failsafe, JaCoCo, GitHub Actions |
 
-## Features
+## Features and business rules
 
-### User Management
+### Users and authentication
 
-- Create, retrieve, update, and delete users
-- Unique email validation
-- Database-enforced uniqueness constraints
-- Optimistic locking for concurrent entity modifications
-- Handling of database integrity violations
+- Register with a name, unique email, and password.
+- Registration passwords must contain 17–128 characters; names must contain 3–50 characters.
+- Authenticate against stored password hashes.
+- Retrieve the current user's profile, change their name, and delete their profile.
+- Delete a user only when they have no bank accounts. Successful deletion also logs out the current session.
+- Return profiles without exposing passwords or password hashes.
 
-### Bank Account Management
+### Bank accounts and money operations
 
-- Create and retrieve bank accounts
-- Associate accounts with users
-- Manage account statuses
-- Block and unblock accounts
-- Maintain account balances
-- Enforce non-negative balances
-- Configure daily transfer limits
-- Validate account ownership and availability
+- Create accounts for the authenticated user and list their accounts with pagination.
+- Retrieve, block, unblock, or close an owned account.
+- New accounts start active with a zero balance and an outgoing limit of 1,000.00.
+- Deposit into and withdraw from owned accounts.
+- Transfer from an owned account to a different account, including another user's account.
+- Require active accounts for balance changes and a zero balance before closing an account.
+- Configure an active account's outgoing limit.
+- Reject insufficient funds and operations exceeding the outgoing limit.
 
-### Banking Operations
+The outgoing limit applies to a **rolling 24-hour window**, rather than a calendar day. Withdrawals and outgoing transfers count toward it; deposits do not.
 
-FlowBank supports three primary banking operations:
+Money uses `BigDecimal` in application code and `NUMERIC(19, 2)` in PostgreSQL. Operation amounts must be positive, with at most 17 integer digits and two decimal places.
 
-**Deposits**
-- Add funds to an account
-- Validate account state
-- Update balances transactionally
+### History and analytics
 
-**Withdrawals**
-- Withdraw available funds
-- Prevent insufficient-funds operations
-- Enforce balance constraints
+- Retrieve transaction details when the current user owns either participating account.
+- Retrieve an owned account's history with pagination, incoming/outgoing filtering, and sorting.
+- Calculate sent/received totals, counts, averages, and largest transaction amounts.
+- Read analytics within a `REPEATABLE_READ` transaction so the aggregate queries use a consistent database snapshot.
 
-**Transfers**
-- Transfer funds between bank accounts
-- Validate sender and recipient accounts
-- Enforce daily transfer limits
-- Apply deterministic pessimistic locking
-- Prevent duplicate operations through idempotency keys
+## Authentication and authorization
 
-### Transaction History & Analytics
+FlowBank uses the `JSESSIONID` session cookie. Registration and login save authentication in the HTTP session; subsequent requests must retain that cookie.
 
-- Retrieve transaction history
-- Filter transactions by account
-- Distinguish incoming and outgoing transactions
-- Sort transaction records
-- Calculate account transaction statistics
-- Provide aggregate values such as totals, averages, and largest transactions
+The public application endpoints are `GET /auth/csrf`, `POST /auth/register`, and `POST /auth/login`. Registration and login still require a valid CSRF token. The security filter permits logout, which also requires CSRF protection.
 
-## Concurrency & Data Consistency
+Other application endpoints require authentication:
 
-Concurrency safety is a central part of FlowBank.
+- Account operations and analytics require account ownership.
+- Transfers require ownership of the source account.
+- Transaction details are visible to the owner of either participating account.
+- Current-user routes derive the user ID from the authenticated principal.
 
-The application combines transactional boundaries, database constraints, and locking strategies to protect financial operations from inconsistent states.
+Access to another user's protected resource returns **404**, matching a missing resource, to avoid disclosing its existence. Missing authentication returns **401**. Missing or invalid CSRF tokens on state-changing requests return **403**.
 
-### Transactional Operations
+### Session and CSRF workflow
 
-Banking operations execute within Spring-managed database transactions using `@Transactional`.
+1. Call `GET /auth/csrf` and retain the session cookie.
+2. Read `token`, `headerName`, and `parameterName` from the response.
+3. Send the token in the indicated header, together with the cookie, when registering or logging in.
+4. After successful registration or login, retain the updated session cookie and **fetch a new CSRF token**. Authentication rotates an existing session ID and clears the previous CSRF token.
+5. Include the cookie on authenticated requests and the current CSRF token on `POST`, `PATCH`, `PUT`, and `DELETE` requests. `GET` requests do not require a CSRF token.
+6. Log out with `POST /auth/logout`, using the cookie and current CSRF token.
 
-Operations either complete successfully or roll back when an exception prevents successful execution.
+Example registration body:
 
-### Pessimistic Locking
+```json
+{
+  "name": "Davyd",
+  "email": "davyd@example.com",
+  "password": "a-long-example-password"
+}
+```
 
-Bank account modifications use database-level pessimistic write locks to coordinate concurrent balance updates.
+## API overview
 
-For transfers, accounts are locked in deterministic ID order:
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/auth/csrf` | Obtain a CSRF token |
+| POST | `/auth/register` | Register and authenticate |
+| POST | `/auth/login` | Authenticate an existing user |
+| POST | `/auth/logout` | Invalidate the session and delete its cookie |
+| GET | `/auth/me` | Retrieve the current profile |
+| PATCH | `/users/me/name` | Change the current user's name |
+| DELETE | `/users/me` | Delete the current user, if they have no accounts |
+| POST | `/accounts` | Create an account for the current user |
+| GET | `/accounts/me` | List the current user's accounts |
+| GET | `/accounts/{id}` | Retrieve an owned account |
+| PATCH | `/accounts/{id}/block` | Block an owned account |
+| PATCH | `/accounts/{id}/unblock` | Unblock an owned account |
+| PATCH | `/accounts/{id}/close` | Close an owned account with a zero balance |
+| PATCH | `/accounts/{id}/dailyOutgoingLimit` | Change the outgoing limit |
+| POST | `/transactions/deposit` | Deposit funds |
+| POST | `/transactions/withdraw` | Withdraw funds |
+| POST | `/transactions/transfer` | Transfer funds |
+| GET | `/transactions/{id}` | Retrieve a transaction involving an owned account |
+| GET | `/transactions/by-account/{accountId}` | Retrieve an owned account's history |
+| GET | `/analytics/accounts/{id}` | Retrieve an owned account's analytics |
 
-`min(accountId) → max(accountId)`
+Deposit and withdrawal bodies use `accountId` and `amount`. Transfer bodies use `fromAccountId`, `toAccountId`, and `amount`. Changing the outgoing limit uses an `amount` field.
 
-This reduces the risk of deadlocks when concurrent transfers access overlapping accounts.
+Swagger UI is available at `/swagger-ui/index.html`; the OpenAPI document is at `/v3/api-docs`. The current security configuration requires authentication for these routes too; access them using a client that retains an authenticated session.
 
-### Optimistic Locking
+## Transactions, concurrency, and idempotency
 
-JPA `@Version` fields provide optimistic concurrency control for versioned entities.
+### Data consistency
 
-Conflicting modifications can be detected rather than silently overwriting changes.
+- Balance changes and transaction records execute within the same Spring-managed database transaction.
+- Balance-changing operations acquire pessimistic write locks on the affected accounts.
+- Transfers lock accounts in ascending ID order to reduce deadlock risk.
+- JPA `@Version` fields detect conflicting updates to users and accounts.
+- Database constraints enforce unique emails and idempotency keys, non-negative balances, positive transaction amounts, and referential integrity.
+- Constraint violations are translated into application errors where appropriate.
 
-### Database Constraints
+### Idempotency contract
 
-Database-level constraints act as a final consistency boundary, including:
+Deposits, withdrawals, and transfers require an `Idempotency-Key` header. Keys are nonblank, at most 100 characters long, and globally unique across transaction records.
 
-- Unique user email addresses
-- Unique transaction idempotency keys
-- Non-negative account balances
-- Referential integrity between related entities
+For an authorized request with an existing key:
 
-### Race Condition Handling
+- Matching source account, destination account, and amount return the stored transaction without applying another balance change.
+- Different account IDs or amount produce **409 Conflict**.
+- Deposits and withdrawals use a null source or destination respectively, distinguishing them from transfers.
 
-The application handles integrity violations that can occur when concurrent requests pass preliminary application-level checks.
+The service checks the key before acquiring account locks and again after locking. The preliminary check avoids unnecessary locks for repeated requests; the second accounts for changes committed while waiting for a lock.
 
-Spring's `DataIntegrityViolationException` is used where appropriate to translate database constraint violations into meaningful application behavior.
+A database uniqueness constraint provides the final safeguard, including races between requests that lock different accounts. If a key collision reaches `saveAndFlush`, the operation rolls back and returns **409 Conflict**, rather than returning the existing transaction from that exception path.
 
-### Idempotency
-
-Financial operations support idempotency keys to prevent duplicate processing.
-
-When a request uses an existing idempotency key:
-
-- **Same operation type and amount:** The previously recorded result is returned without executing the operation again.
-- **Different operation type or amount:** A domain exception is thrown to indicate an idempotency conflict.
-- **New idempotency key:** The operation is processed normally, subject to business validations.
-
-Database-level uniqueness constraints protect idempotency keys against concurrent duplicate requests.
-
-This ensures that retrying an identical request does not apply the same balance modification multiple times.
-
-### Database Constraints
-
-Database constraints provide an additional layer of data integrity:
-
-- Unique user email addresses
-- Unique transaction idempotency keys
-- Non-negative account balances
-- Referential integrity between users and bank accounts
-
-Application-level validations are complemented by database constraints to handle race conditions that cannot be reliably prevented through preliminary checks alone.
-
-### Code Coverage
-
-JaCoCo is integrated into the Maven build to generate code coverage reports.
-
-Coverage reports provide visibility into tested and untested execution paths, helping evaluate test completeness and identify opportunities for additional testing.
-
-JaCoCo is used for **reporting purposes only**. The build does not enforce minimum coverage thresholds.
-
-### Integration Testing Infrastructure
-
-Integration tests use **Testcontainers with Docker** to run against real PostgreSQL database instances.
-
-This allows persistence, transaction management, database constraints, and concurrency behavior to be tested in an environment closer to production database behavior.
-
-Docker is required for Testcontainers-based tests but is not used to containerize or deploy the FlowBank application.
-
-### Continuous Integration
-
-GitHub Actions provides automated build and test verification.
-
-The CI workflow:
-
-- Builds the application using Maven
-- Executes unit tests through Maven Surefire
-- Executes integration tests through Maven Failsafe
-- Uses Docker and Testcontainers for PostgreSQL integration testing
-- Generates JaCoCo code coverage reports
-
-The CI pipeline verifies the automated test suites without enforcing a minimum coverage percentage.
+## Running locally
 
 ### Requirements
 
-- JDK 21+
-- Maven
-- PostgreSQL for local application execution
-- Docker-compatible container runtime for Testcontainers-based integration tests
+- JDK 25.
+- Maven available on `PATH`.
+- A running PostgreSQL instance for the application.
+- A running Docker-compatible container runtime for integration tests. Testcontainers uses PostgreSQL 17.
 
-### Running Tests
+### Setup
+
+1. Create a PostgreSQL database:
+
+   ```sql
+   CREATE DATABASE flow_bank;
+   ```
+
+2. Copy `src/main/resources/application.properties.example` to `src/main/resources/application.properties` and configure the connection:
+
+   ```properties
+   spring.datasource.url=jdbc:postgresql://localhost:5432/flow_bank
+   spring.datasource.username=YOUR_USERNAME
+   spring.datasource.password=YOUR_PASSWORD
+   ```
+
+   The local configuration file is ignored by Git. The example also sets Hibernate schema validation and pagination defaults. Flyway applies database migrations during startup.
+
+3. Start the application:
+
+   ```bash
+   mvn spring-boot:run
+   ```
+
+The default base URL is `http://localhost:8080`. Follow the session and CSRF workflow above before calling authenticated endpoints.
+
+## Tests and coverage
+
+Unit tests cover domain rules and service behavior. Integration tests exercise repositories, services, concurrency scenarios, and controller requests against PostgreSQL through Testcontainers.
+
+Controller tests use MockMvc with the Spring application context and security filters. Authentication integration tests use real services and password verification to check registration, login, logout, session isolation, session ID rotation, and CSRF behavior.
 
 Run unit tests:
 
 ```bash
-mvn test
+mvn clean test
 ```
 
-Run the full Maven verification lifecycle, including integration tests:
+Run the complete suite and generate combined coverage:
 
 ```bash
 mvn clean verify
 ```
 
-JaCoCo coverage reports are generated through the configured Maven reporting lifecycle.
+Run integration tests without unit tests:
 
-### Project Status
+```bash
+mvn clean verify -DskipUnitTests=true
+```
 
-**FlowBank v1.0 — Release preparation**
+Run only the authentication controller integration tests:
 
-Core banking operations, concurrency control, database consistency mechanisms, unit tests, integration tests, and automated CI verification have been implemented.
+```bash
+mvn verify -Dit.test=AuthControllerIT -DskipUnitTests=true
+```
 
-The remaining release preparation focuses on documentation and final project review.
+Generate coverage from unit tests only:
 
-FlowBank is an educational and portfolio-oriented backend system, not a production banking service intended for real financial transactions.
+```bash
+mvn clean test jacoco:report
+```
+
+Surefire runs unit tests; Failsafe runs `*IT` classes. JaCoCo collects data from both during a full `verify` run. Reports are written to:
+
+- Coverage: `target/site/jacoco/index.html`.
+- Unit-test results: `target/surefire-reports/`.
+- Integration-test results: `target/failsafe-reports/`.
+
+JaCoCo reports coverage without enforcing a minimum threshold. Integration tests start their own PostgreSQL container and do not require the local application database.
+
+## Continuous integration
+
+GitHub Actions runs on pull requests targeting `main`, using Java 25 and separate jobs for:
+
+- Unit tests: `mvn clean test`.
+- Integration tests: `mvn clean verify -DskipUnitTests=true`.
+
+The integration job generates a JaCoCo report for the tests it runs. A local `mvn clean verify` runs both suites together and produces their combined coverage.
+
+## Project structure
+
+The application is organized by feature under `src/main/java/com/davyd`:
+
+- `auth`: registration, login, session endpoints, and credentials.
+- `security`: security configuration, principals, and ownership validation.
+- `user`: user profiles and persistence.
+- `bankaccount`: account lifecycle, balances, and outgoing limits.
+- `transaction`: money operations, history, and idempotency.
+- `analytics`: Kotlin account analytics.
+- `common`: shared validation, configuration, and exception handling.
+
+SQL migrations are in `src/main/resources/db/migration`. Tests are grouped into `unit`, `integration`, and `support` under `src/test/java/com/davyd`.
+
+## Scope
+
+FlowBank is an educational and portfolio backend. Deposits and withdrawals model internal operations; the application does not integrate with an external payment provider or process real funds.
