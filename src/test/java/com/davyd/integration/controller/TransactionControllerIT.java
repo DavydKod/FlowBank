@@ -70,6 +70,90 @@ class TransactionControllerIT {
     }
 
     @Test
+    void shouldReturn404WhenGettingAnotherUsersTransaction() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+        transactionService.deposit(owner.id(), account.id(), new BigDecimal("100.00"), "setup-deposit");
+        TransactionResponse transaction = transactionService.transfer(
+                owner.id(), account.id(), bankAccountService.createAccount(owner.id()).id(),
+                new BigDecimal("10.00"), "setup-transfer");
+
+        mockMvc.perform(get("/transactions/{id}", transaction.id())
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused"))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenGettingAnotherUsersAccountTransactions() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+        transactionService.deposit(owner.id(), account.id(), new BigDecimal("100.00"), "setup-deposit");
+
+        mockMvc.perform(get("/transactions/by-account/{accountId}", account.id())
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused"))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenDepositingToAnotherUsersAccount() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+        transactionService.deposit(owner.id(), account.id(), new BigDecimal("100.00"), "setup-deposit");
+
+        mockMvc.perform(post("/transactions/deposit")
+                        .header("Idempotency-Key", "unauthorized-operation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new CreateExternalTransactionRequest(account.id(), new BigDecimal("10.00"))))
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused")))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenWithdrawingFromAnotherUsersAccount() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+        transactionService.deposit(owner.id(), account.id(), new BigDecimal("100.00"), "setup-deposit");
+
+        mockMvc.perform(post("/transactions/withdraw")
+                        .header("Idempotency-Key", "unauthorized-operation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new CreateExternalTransactionRequest(account.id(), new BigDecimal("10.00"))))
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused")))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturn404WhenTransferringFromAnotherUsersAccount() throws Exception {
+        UserResponse owner = userService.createUser("Owner", "owner@example.com");
+        UserResponse otherUser = userService.createUser("Other", "other@example.com");
+        BankAccountResponse account = bankAccountService.createAccount(owner.id());
+        transactionService.deposit(owner.id(), account.id(), new BigDecimal("100.00"), "setup-deposit");
+        BankAccountResponse recipient = bankAccountService.createAccount(otherUser.id());
+
+        mockMvc.perform(post("/transactions/transfer")
+                        .header("Idempotency-Key", "unauthorized-operation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new CreateTransferTransactionRequest(account.id(), recipient.id(), new BigDecimal("10.00"))))
+                        .with(user(new FlowBankPrincipal(otherUser.id(), otherUser.email(), "unused")))
+                        .with(csrf()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
     void shouldGetTransactionById() throws Exception {
         UserResponse user =
                 userService.createUser("Davyd", "davyd@gmail.com");

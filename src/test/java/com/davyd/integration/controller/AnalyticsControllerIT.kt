@@ -38,6 +38,21 @@ class AnalyticsControllerIT {
     }
 
     @Test
+    fun shouldReturn404WhenGettingAnotherUsersAccountAnalytics() {
+        val owner = userRepository.save(User("Owner", "owner@example.com"))
+        val otherUser = userRepository.save(User("Other", "other@example.com"))
+        val account = bankAccountRepository.save(BankAccount(owner))
+
+        mockMvc.get("/analytics/accounts/{id}", account.id) {
+            with(user(FlowBankPrincipal(otherUser.id!!, otherUser.email, "unused")))
+        }
+            .andExpect {
+                status { isNotFound() }
+                jsonPath("$.status") { value(404) }
+            }
+    }
+
+    @Test
     fun shouldGetBankAccountAnalytics() {
         val user = userRepository.save(
             User("Davyd", "davyd@gmail.com")
