@@ -15,9 +15,9 @@ public class OpenApiConfig {
                         .title("FlowBank API")
                         .description(
                                 "REST API for managing users, bank accounts "
-                                        + "and money transfers."
+                                        + "and money transactions with auth functionality"
                         )
-                        .version("1.0.0")
+                        .version("2.0.0")
                 );
     }
 }
